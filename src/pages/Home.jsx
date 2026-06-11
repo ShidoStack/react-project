@@ -13,16 +13,16 @@ function HeroSection() {
       <div className="relative z-10 mx-auto grid max-w-[1280px] grid-cols-1 items-center gap-6 lg:grid-cols-12">
         <div className="flex flex-col items-start lg:col-span-6">
           <div className="glass-panel mb-8 inline-flex items-center gap-2 rounded-full px-4 py-1.5 shadow-sm">
-            <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-[#3730a3]" />
-            <span className="text-xs font-bold uppercase tracking-wider text-[#464555]">The premium event platform</span>
+            <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-brand-indigo" />
+            <span className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">The premium event platform</span>
           </div>
-          <h1 className="mb-8 max-w-3xl text-[56px] font-bold leading-[1.05] tracking-tight text-[#1a1c1d] md:text-[80px]">
-            Every Great Night <br />Starts With A <span className="text-[#3730a3]">Mehfil</span>
+          <h1 className="mb-8 max-w-3xl text-5xl font-extrabold leading-[1.05] tracking-tight text-on-surface md:text-7xl">
+            Every Great Night <br />Starts With A <span className="text-brand-indigo">Mehfil</span>
           </h1>
-          <p className="mb-4 max-w-xl text-lg font-medium leading-relaxed text-[#464555]">
+          <p className="mb-4 max-w-xl text-lg font-medium leading-relaxed text-on-surface-variant">
             Discover and book the experiences you'll talk about tomorrow.
           </p>
-          <p className="mb-12 max-w-xl text-base leading-relaxed text-[#464555]">
+          <p className="mb-12 max-w-xl text-base leading-relaxed text-on-surface-variant">
             Curated events, verified tickets, and seamless entry for the modern cultural connoisseur.
           </p>
           <div className="flex w-full flex-col gap-5 sm:w-auto sm:flex-row">
@@ -54,8 +54,8 @@ function ArtistMarquee() {
           <div key={groupIdx} className="flex shrink-0 items-center gap-12">
             {marqueeArtists.map((artist, idx) => (
               <span key={`${groupIdx}-${idx}`} className="flex items-center gap-12">
-                <span className="text-2xl font-bold uppercase tracking-widest text-[#464555]/40">{artist}</span>
-                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#c7c4d8]/50" />
+                <span className="text-2xl font-bold uppercase tracking-widest text-on-surface-variant/40">{artist}</span>
+                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-outline-variant/50" />
               </span>
             ))}
           </div>
@@ -71,10 +71,10 @@ function FeaturedEvents() {
       <div className="mx-auto max-w-[1280px]">
         <div className="mb-12 flex items-end justify-between">
           <div>
-            <span className="mb-2 block text-xs font-bold uppercase tracking-widest text-[#3730a3]">Featured Events</span>
-            <h2 className="text-4xl font-bold tracking-tight text-[#1a1c1d] md:text-5xl">Experiences selling out fast</h2>
+            <span className="mb-2 block text-xs font-bold uppercase tracking-widest text-brand-indigo">Featured Events</span>
+            <h2 className="text-4xl font-bold tracking-tight text-on-surface md:text-5xl">Experiences selling out fast</h2>
           </div>
-          <Link to="/events" className="hidden items-center gap-2 rounded-full border border-gray-200 px-6 py-3 text-sm font-semibold text-[#1a1c1d] transition-colors hover:border-[#3730a3] hover:text-[#3730a3] md:inline-flex">
+          <Link to="/events" className="hidden items-center gap-2 rounded-full border border-gray-200 px-6 py-3 text-sm font-semibold text-on-surface transition-colors hover:border-brand-indigo hover:text-brand-indigo md:inline-flex">
             View all events <Icon name="arrow_forward" style={{ fontSize: 18 }} />
           </Link>
         </div>
@@ -99,19 +99,19 @@ function Categories() {
   ];
 
   return (
-    <section className="border-y border-gray-200 bg-[#f3f3f4] px-5 py-24 md:px-10">
+    <section className="border-y border-gray-200 px-5 py-24 md:px-10">
       <div className="mx-auto max-w-[1280px] text-center">
-        <span className="mb-4 block text-xs font-bold uppercase tracking-widest text-[#3730a3]">Discover By Category</span>
-        <h2 className="mb-4 text-4xl font-bold tracking-tight text-[#1a1c1d] md:text-5xl">Find your kind of night</h2>
-        <p className="mx-auto mb-16 max-w-2xl text-lg text-[#464555]">
+        <span className="mb-4 block text-xs font-bold uppercase tracking-widest text-brand-indigo">Discover By Category</span>
+        <h2 className="mb-4 text-4xl font-bold tracking-tight text-on-surface md:text-5xl">Find your kind of night</h2>
+        <p className="mx-auto mb-16 max-w-2xl text-lg text-on-surface-variant">
           From intimate jazz sessions to stadium-scale spectacles, every mood has a mehfil.
         </p>
         <div className="flex flex-wrap justify-center gap-6">
           {categories.map((cat) => (
-            <Link key={cat.label} to="/events" className={`hover-lift flex h-40 w-40 flex-col items-center justify-center rounded-3xl bg-white p-6 ${cat.active ? 'border border-[#3730a3] shadow-md ring-1 ring-[#3730a3]' : 'border border-gray-200'}`}>
-              <Icon name={cat.icon} className={`mb-4 ${cat.active ? 'text-[#3730a3]' : 'text-[#464555]'}`} style={{ fontSize: 36 }} />
-              <span className="text-center text-base font-bold leading-tight text-[#1a1c1d]">{cat.label}</span>
-              <span className="mt-1 text-xs text-[#464555]">{cat.count}</span>
+            <Link key={cat.label} to="/events" className={`hover-lift flex h-40 w-40 flex-col items-center justify-center rounded-3xl bg-white p-6 ${cat.active ? 'border border-brand-indigo shadow-md ring-1 ring-brand-indigo' : 'border border-gray-200'}`}>
+              <Icon name={cat.icon} className={`mb-4 ${cat.active ? 'text-brand-indigo' : 'text-on-surface-variant'}`} style={{ fontSize: 36 }} />
+              <span className="text-center text-base font-bold leading-tight text-on-surface">{cat.label}</span>
+              <span className="mt-1 text-xs text-on-surface-variant">{cat.count}</span>
             </Link>
           ))}
         </div>
@@ -129,7 +129,7 @@ function WhyMehfilX() {
   ];
 
   return (
-    <section className="border-b border-gray-200 bg-[#f3f3f4] px-5 py-24 md:px-10">
+    <section className="border-b border-gray-200 px-5 py-24 md:px-10">
       <div className="mx-auto grid max-w-[1280px] grid-cols-1 items-center gap-16 lg:grid-cols-2">
         <div className="relative flex flex-col gap-5">
           <div className="bg-grid-pattern pointer-events-none absolute inset-0 rounded-3xl opacity-60" />
@@ -138,13 +138,13 @@ function WhyMehfilX() {
               <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-100 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700">
                 <Icon name="star" className="text-amber-400" style={{ fontSize: 16 }} /> Rated 4.9 by 210K users
               </span>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-[#3730a3]/20 bg-[#3730a3]/5 px-3 py-1.5 text-xs font-semibold text-[#3730a3]">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-indigo/20 bg-brand-indigo/5 px-3 py-1.5 text-xs font-semibold text-brand-indigo">
                 <Icon name="bolt" style={{ fontSize: 16 }} /> Instant confirmation
               </span>
             </div>
             <div className="mb-5 flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-4 py-2.5">
-              <Icon name="search" className="text-[#777587]" style={{ fontSize: 16 }} />
-              <span className="text-sm text-[#777587]">Search events, venues, artists...</span>
+              <Icon name="search" className="text-outline" style={{ fontSize: 16 }} />
+              <span className="text-sm text-outline">Search events, venues, artists...</span>
             </div>
             <div className="flex flex-col gap-2">
               {events.slice(0, 4).map((event) => (
@@ -154,33 +154,33 @@ function WhyMehfilX() {
                       <Icon name={event.category === 'Comedy' ? 'theater_comedy' : 'music_note'} className="text-white" style={{ fontSize: 18 }} />
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-[#1a1c1d]">{event.title}</p>
-                      <p className="text-xs text-[#464555]">{event.date} · {event.venue}</p>
+                      <p className="text-sm font-semibold text-on-surface">{event.title}</p>
+                      <p className="text-xs text-on-surface-variant">{event.date} · {event.venue}</p>
                     </div>
                   </div>
-                  <button className="rounded-full bg-[#3730a3] px-4 py-1.5 text-xs font-bold text-white transition-colors hover:bg-indigo-800">Book</button>
+                  <button className="rounded-full bg-brand-indigo px-4 py-1.5 text-xs font-bold text-white transition-colors hover:bg-indigo-800">Book</button>
                 </div>
               ))}
             </div>
           </div>
         </div>
         <div>
-          <span className="mb-4 block text-xs font-bold uppercase tracking-widest text-[#3730a3]">Why MehfilX</span>
-          <h2 className="mb-6 text-4xl font-bold leading-tight tracking-tight text-[#1a1c1d] md:text-5xl">
+          <span className="mb-4 block text-xs font-bold uppercase tracking-widest text-brand-indigo">Why MehfilX</span>
+          <h2 className="mb-6 text-4xl font-bold leading-tight tracking-tight text-on-surface md:text-5xl">
             Built for people who<br />live for live
           </h2>
-          <p className="mb-10 text-lg text-[#464555]">
+          <p className="mb-10 text-lg text-on-surface-variant">
             We obsessed over every detail, from discovering hidden gems to the moment you scan your ticket at the door.
           </p>
           <div className="flex flex-col divide-y divide-gray-200">
             {reasons.map(([icon, title, desc]) => (
               <div key={title} className="flex items-start gap-4 py-5">
                 <div className="mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-full border border-gray-100 bg-gray-100">
-                  <Icon name={icon} className="text-[#464555]" style={{ fontSize: 20 }} />
+                  <Icon name={icon} className="text-on-surface-variant" style={{ fontSize: 20 }} />
                 </div>
                 <div>
-                  <p className="mb-1 font-bold text-[#1a1c1d]">{title}</p>
-                  <p className="text-sm leading-relaxed text-[#464555]">{desc}</p>
+                  <p className="mb-1 font-bold text-on-surface">{title}</p>
+                  <p className="text-sm leading-relaxed text-on-surface-variant">{desc}</p>
                 </div>
               </div>
             ))}
@@ -200,24 +200,24 @@ function HowItWorks() {
   ];
 
   return (
-    <section className="bg-[#f9f9fa] px-5 py-32 md:px-10">
+    <section className="px-5 py-32 md:px-10">
       <div className="mx-auto mb-20 max-w-[1280px] text-center">
-        <h2 className="mx-auto mb-6 max-w-2xl text-4xl font-bold tracking-tight text-[#1a1c1d] md:text-5xl">From discovery to door<br />in minutes</h2>
-        <p className="mx-auto max-w-2xl text-lg text-[#464555]">We removed every friction point between you and a great night out.</p>
+        <h2 className="mx-auto mb-6 max-w-2xl text-4xl font-bold tracking-tight text-on-surface md:text-5xl">From discovery to door<br />in minutes</h2>
+        <p className="mx-auto max-w-2xl text-lg text-on-surface-variant">We removed every friction point between you and a great night out.</p>
       </div>
       <div className="mx-auto max-w-[1280px]">
         <div className="grid grid-cols-1 overflow-hidden rounded-2xl border border-gray-200 bg-white md:grid-cols-4">
           {steps.map(([num, icon, title, desc], i) => (
             <div key={num} className={`p-10 ${i < steps.length - 1 ? 'border-b border-gray-200 md:border-b-0 md:border-r' : ''}`}>
               <div className="mb-8 flex items-center gap-4">
-                <span className="text-sm font-bold text-[#3730a3]">{num}</span>
+                <span className="text-sm font-bold text-brand-indigo">{num}</span>
                 <div className="h-px flex-1 bg-gray-200" />
               </div>
-              <div className="mb-6 grid h-12 w-12 place-items-center rounded-full border border-gray-100 bg-[#eeeeef]">
-                <Icon name={icon} className="text-[#1a1c1d]" style={{ fontSize: 24 }} />
+              <div className="mb-6 grid h-12 w-12 place-items-center rounded-full border border-gray-100 bg-surface-container">
+                <Icon name={icon} className="text-on-surface" style={{ fontSize: 24 }} />
               </div>
-              <h3 className="mb-3 text-lg font-bold text-[#1a1c1d]">{title}</h3>
-              <p className="text-sm leading-relaxed text-[#464555]">{desc}</p>
+              <h3 className="mb-3 text-lg font-bold text-on-surface">{title}</h3>
+              <p className="text-sm leading-relaxed text-on-surface-variant">{desc}</p>
             </div>
           ))}
         </div>
@@ -237,20 +237,20 @@ function FeatureHighlights() {
   ];
 
   return (
-    <section className="border-t border-gray-200 bg-[#f9f9fa] px-5 py-32 md:px-10">
+    <section className="border-t border-gray-200 px-5 py-32 md:px-10">
       <div className="mx-auto mb-20 max-w-[1280px] text-center">
-        <span className="mb-4 block text-xs font-bold uppercase tracking-widest text-[#3730a3]">Feature Showcase</span>
-        <h2 className="mx-auto mb-6 max-w-2xl text-4xl font-bold tracking-tight text-[#1a1c1d] md:text-5xl">Every detail, considered</h2>
-        <p className="mx-auto max-w-2xl text-lg text-[#464555]">Purpose-built for live entertainment, not adapted from generic commerce.</p>
+        <span className="mb-4 block text-xs font-bold uppercase tracking-widest text-brand-indigo">Feature Showcase</span>
+        <h2 className="mx-auto mb-6 max-w-2xl text-4xl font-bold tracking-tight text-on-surface md:text-5xl">Every detail, considered</h2>
+        <p className="mx-auto max-w-2xl text-lg text-on-surface-variant">Purpose-built for live entertainment, not adapted from generic commerce.</p>
       </div>
       <div className="mx-auto grid max-w-[1280px] grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
         {features.map(([icon, title, desc]) => (
           <div key={title} className="hover-lift rounded-[2rem] border border-gray-200 bg-white p-8">
-            <div className="mb-6 grid h-12 w-12 place-items-center rounded-full border border-gray-200 bg-[#eeeeef]">
-              <Icon name={icon} className="text-[#1a1c1d]" style={{ fontSize: 24 }} />
+            <div className="mb-6 grid h-12 w-12 place-items-center rounded-full border border-gray-200 bg-surface-container">
+              <Icon name={icon} className="text-on-surface" style={{ fontSize: 24 }} />
             </div>
-            <h3 className="mb-3 text-lg font-bold text-[#1a1c1d]">{title}</h3>
-            <p className="text-sm leading-relaxed text-[#464555]">{desc}</p>
+            <h3 className="mb-3 text-lg font-bold text-on-surface">{title}</h3>
+            <p className="text-sm leading-relaxed text-on-surface-variant">{desc}</p>
           </div>
         ))}
       </div>
@@ -267,23 +267,23 @@ function FutureRoadmap() {
   ];
 
   return (
-    <section className="border-t border-gray-200 bg-[#f9f9fa] px-5 py-32 md:px-10">
+    <section className="border-t border-gray-200 px-5 py-32 md:px-10">
       <div className="mx-auto max-w-[1280px]">
         <div className="mb-20 max-w-2xl">
-          <span className="mb-4 block text-xs font-bold uppercase tracking-widest text-[#3730a3]">What's Next</span>
-          <h2 className="mb-6 text-4xl font-bold tracking-tight text-[#1a1c1d] md:text-5xl">Building towards the<br />best night ever</h2>
-          <p className="text-lg text-[#464555]">A peek at what we're shipping, because great products are never finished.</p>
+          <span className="mb-4 block text-xs font-bold uppercase tracking-widest text-brand-indigo">What's Next</span>
+          <h2 className="mb-6 text-4xl font-bold tracking-tight text-on-surface md:text-5xl">Building towards the<br />best night ever</h2>
+          <p className="text-lg text-on-surface-variant">A peek at what we're shipping, because great products are never finished.</p>
         </div>
         <div className="grid grid-cols-1 gap-8 md:grid-cols-4">
           {items.map(([quarter, title, desc, badge]) => (
             <div key={quarter}>
-              <div className="mb-6 grid h-12 w-12 place-items-center rounded-full border border-gray-200 bg-[#f3f3f4]">
-                <Icon name={badge === 'In Progress' ? 'bolt' : 'check'} className={badge === 'In Progress' ? 'text-[#3730a3]' : 'text-green-500'} style={{ fontSize: 24 }} />
+              <div className="mb-6 grid h-12 w-12 place-items-center rounded-full border border-gray-200 bg-surface-container-low">
+                <Icon name={badge === 'In Progress' ? 'bolt' : 'check'} className={badge === 'In Progress' ? 'text-brand-indigo' : 'text-green-500'} style={{ fontSize: 24 }} />
               </div>
-              <span className="mb-2 block text-xs font-bold uppercase tracking-wider text-[#464555]">{quarter}</span>
-              <h3 className="mb-3 text-sm font-bold text-[#1a1c1d]">{title}</h3>
-              <p className="mb-4 text-xs leading-relaxed text-[#464555]">{desc}</p>
-              <span className="inline-flex rounded-full bg-[#eeeeef] px-3 py-1 text-xs font-medium text-[#464555]">{badge}</span>
+              <span className="mb-2 block text-xs font-bold uppercase tracking-wider text-on-surface-variant">{quarter}</span>
+              <h3 className="mb-3 text-sm font-bold text-on-surface">{title}</h3>
+              <p className="mb-4 text-xs leading-relaxed text-on-surface-variant">{desc}</p>
+              <span className="inline-flex rounded-full bg-surface-container px-3 py-1 text-xs font-medium text-on-surface-variant">{badge}</span>
             </div>
           ))}
         </div>
@@ -292,36 +292,13 @@ function FutureRoadmap() {
   );
 }
 
-function NewsletterCTA() {
-  const [email, setEmail] = useState('');
-
-  return (
-    <section className="relative overflow-hidden bg-[#0a0a0a] px-5 py-20 text-white md:px-10 md:py-24">
-      <div className="relative z-10 mx-auto flex max-w-[1280px] flex-col items-center text-center">
-        <span className="mb-4 block text-xs font-bold uppercase tracking-widest text-[#3730a3]">Get Early Access</span>
-        <h2 className="mx-auto mb-6 max-w-2xl text-4xl font-bold tracking-tight text-white md:text-5xl">Your next favourite memory<br />is waiting</h2>
-        <p className="mx-auto mb-10 max-w-xl text-lg text-gray-400">
-          Join 80,000+ music lovers and comedy fans already on MehfilX. Drop your email, we'll take it from here.
-        </p>
-        <div className="mx-auto mb-6 flex w-full max-w-md flex-col gap-3 sm:flex-row">
-          <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@email.com" className="flex-1 rounded-full border border-gray-800 bg-gray-900 px-5 py-3.5 text-sm font-medium text-white transition placeholder:text-gray-500 focus:border-[#3730a3] focus:outline-none focus:ring-1 focus:ring-[#3730a3]" />
-          <button className="flex items-center justify-center gap-2 rounded-full bg-[#3730a3] px-8 py-3.5 text-sm font-bold text-white transition-colors hover:bg-indigo-600">
-            Get notified <Icon name="arrow_forward" style={{ fontSize: 18 }} />
-          </button>
-        </div>
-        <p className="text-xs text-gray-600">No spam, ever. Unsubscribe in one click.</p>
-      </div>
-    </section>
-  );
-}
 
 export default function Home() {
   return (
     <>
-      <div className="fixed inset-0 bg-grid-pattern pointer-events-none" style={{ zIndex: -2 }} />
-      <div className="blob-shape top-[-200px] left-[-200px] h-[600px] w-[600px] rounded-full bg-[#c3c0ff]" />
-      <div className="blob-shape right-[-100px] top-[20%] h-[500px] w-[500px] rounded-full bg-[#e2e2e3]" />
-      <div className="blob-shape bottom-[10%] left-[-300px] h-[800px] w-[800px] rounded-full bg-[#3730a3]/10" />
+      <div className="blob-shape top-[-200px] left-[-200px] h-[600px] w-[600px] rounded-full bg-primary-fixed-dim" />
+      <div className="blob-shape right-[-100px] top-[20%] h-[500px] w-[500px] rounded-full bg-surface-container-highest" />
+      <div className="blob-shape bottom-[10%] left-[-300px] h-[800px] w-[800px] rounded-full bg-brand-indigo/10" />
       <HeroSection />
       <ArtistMarquee />
       <FeaturedEvents />
@@ -330,7 +307,6 @@ export default function Home() {
       <HowItWorks />
       <FeatureHighlights />
       <FutureRoadmap />
-      <NewsletterCTA />
     </>
   );
 }

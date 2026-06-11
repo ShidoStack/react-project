@@ -1,8 +1,9 @@
-import { createContext, useContext } from 'react';
+import { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import Card from '../components/common/Card.jsx';
 import Icon from '../components/common/Icon.jsx';
 import ImageWithSkeleton from '../components/common/ImageWithSkeleton.jsx';
+import EmptyState from '../components/common/EmptyState.jsx';
 import { getEventDetail } from '../data/eventDetails.js';
 
 const EventDetailContext = createContext(null);
@@ -55,49 +56,70 @@ function Hero() {
 function BookingPanel() {
   const eventDetail = useEventDetail();
 
+  const [countdown, setCountdown] = useState({ days: 4, hrs: 7, min: 6, sec: 3 });
+  const intervalRef = useRef(null);
+
+  useEffect(() => {
+    intervalRef.current = setInterval(() => {
+      setCountdown((prev) => {
+        let { days, hrs, min, sec } = prev;
+        if (days === 0 && hrs === 0 && min === 0 && sec === 0) {
+          clearInterval(intervalRef.current);
+          return prev;
+        }
+        sec -= 1;
+        if (sec < 0) { sec = 59; min -= 1; }
+        if (min < 0) { min = 59; hrs -= 1; }
+        if (hrs < 0) { hrs = 23; days -= 1; }
+        if (days < 0) { days = 0; hrs = 0; min = 0; sec = 0; }
+        return { days, hrs, min, sec };
+      });
+    }, 1000);
+    return () => clearInterval(intervalRef.current);
+  }, []);
+
+  const timeUnits = [
+    { label: 'Days', value: countdown.days },
+    { label: 'Hrs', value: countdown.hrs },
+    { label: 'Min', value: countdown.min },
+    { label: 'Sec', value: countdown.sec },
+  ];
+
   return (
     <aside className="sticky top-28 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-[0_20px_60px_rgba(15,23,42,0.10)]">
       <div className="relative h-48 overflow-hidden bg-gray-200">
         <ImageWithSkeleton src={eventDetail.crowdImage} alt="Concert audience" className="absolute inset-0 h-full w-full object-cover" />
       </div>
       <div className="p-6">
-        <h2 className="text-xl font-extrabold text-[#1a1c1d]">{eventDetail.title}</h2>
-        <p className="mt-1 text-sm text-[#777587]">{eventDetail.shortDate} · {eventDetail.venue}</p>
+        <h2 className="text-xl font-extrabold text-on-surface">{eventDetail.title}</h2>
+        <p className="mt-1 text-sm text-outline">{eventDetail.shortDate} · {eventDetail.venue}</p>
         <div className="mt-5 flex items-end gap-2">
-          <span className="text-4xl font-extrabold tracking-tight text-[#1a1c1d]">{eventDetail.price}</span>
-          <span className="pb-1 text-sm font-semibold text-[#777587]">onwards</span>
+          <span className="text-4xl font-extrabold tracking-tight text-on-surface">{eventDetail.price}</span>
+          <span className="pb-1 text-sm font-semibold text-outline">onwards</span>
         </div>
-        <div className="mt-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-bold text-[#464555]">
+        <div className="mt-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-bold text-on-surface-variant">
           <span className="mr-2 text-red-500">•</span>Only {eventDetail.ticketsLeft} tickets remaining across all tiers
         </div>
         <div className="mt-5 grid grid-cols-4 gap-2">
-          {['Days', 'Hrs', 'Min', 'Sec'].map((unit) => (
-            <div key={unit} className="rounded-xl border border-gray-200 bg-[#f9f9fa] py-3 text-center">
-              <div className="text-2xl font-extrabold text-[#1a1c1d]">00</div>
-              <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#777587]">{unit}</div>
+          {timeUnits.map((unit) => (
+            <div key={unit.label} className="rounded-xl border border-gray-200 bg-surface py-3 text-center">
+              <div className="text-2xl font-extrabold text-on-surface">{unit.value.toString().padStart(2, '0')}</div>
+              <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-outline">{unit.label}</div>
             </div>
           ))}
         </div>
-        <Link to={`/events/${eventDetail.slug}/seats`} className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-[#4f46e5] px-5 py-4 text-base font-extrabold text-white shadow-[0_12px_30px_rgba(79,70,229,0.25)] transition hover:-translate-y-0.5 hover:bg-[#3730a3]">
+        <Link to={`/events/${eventDetail.slug}/seats`} className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-[#4f46e5] px-5 py-4 text-base font-extrabold text-white shadow-[0_12px_30px_rgba(79,70,229,0.25)] transition hover:-translate-y-0.5 hover:bg-brand-indigo">
           <Icon name="arrow_forward" /> Book Tickets Now
         </Link>
         <button type="button" className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-base font-extrabold text-red-500 transition hover:bg-red-100">
           <Icon name="favorite" /> Saved to Wishlist
         </button>
-        <dl className="mt-6 grid gap-3 border-t border-gray-200 pt-5 text-sm text-[#464555]">
-          <div className="flex gap-3"><Icon name="location_on" className="text-[#777587]" style={{ fontSize: 18 }} /><span><strong className="text-[#1a1c1d]">{eventDetail.venue}</strong> · {eventDetail.city}</span></div>
-          <div className="flex gap-3"><Icon name="schedule" className="text-[#777587]" style={{ fontSize: 18 }} /><span>Doors <strong className="text-[#1a1c1d]">{eventDetail.doors}</strong> · Show <strong className="text-[#1a1c1d]">{eventDetail.show}</strong></span></div>
-          <div className="flex gap-3"><Icon name="calendar_today" className="text-[#777587]" style={{ fontSize: 18 }} /><span><strong className="text-[#1a1c1d]">{eventDetail.shortDate}</strong> · Saturday</span></div>
-          <div className="flex gap-3"><Icon name="hexagon" className="text-[#777587]" style={{ fontSize: 18 }} /><span>Presented by <strong className="text-[#1a1c1d]">MehfilX Live</strong></span></div>
+        <dl className="mt-6 grid gap-3 border-t border-gray-200 pt-5 text-sm text-on-surface-variant">
+          <div className="flex gap-3"><Icon name="location_on" className="text-outline" style={{ fontSize: 18 }} /><span><strong className="text-on-surface">{eventDetail.venue}</strong> · {eventDetail.city}</span></div>
+          <div className="flex gap-3"><Icon name="schedule" className="text-outline" style={{ fontSize: 18 }} /><span>Doors <strong className="text-on-surface">{eventDetail.doors}</strong> · Show <strong className="text-on-surface">{eventDetail.show}</strong></span></div>
+          <div className="flex gap-3"><Icon name="calendar_today" className="text-outline" style={{ fontSize: 18 }} /><span><strong className="text-on-surface">{eventDetail.shortDate}</strong> · Saturday</span></div>
+          <div className="flex gap-3"><Icon name="hexagon" className="text-outline" style={{ fontSize: 18 }} /><span>Presented by <strong className="text-on-surface">MehfilX Live</strong></span></div>
         </dl>
-      </div>
-      <div className="flex items-center gap-2 border-t border-gray-200 px-6 py-4 text-xs font-bold text-[#777587]">
-        Share
-        {['X', 'W', 'link'].map((item) => (
-          <button key={item} type="button" className="grid h-9 min-w-9 place-items-center rounded-lg border border-gray-200 bg-[#f9f9fa] px-3 text-[#464555] transition hover:border-[#3730a3] hover:text-[#3730a3]">
-            {item === 'link' ? <Icon name="link" style={{ fontSize: 16 }} /> : item}
-          </button>
-        ))}
       </div>
     </aside>
   );
@@ -109,10 +131,10 @@ function AboutSection() {
   return (
     <section className="border-b border-gray-200 pb-20">
       <DetailLabel>About The Event</DetailLabel>
-      <blockquote className="border-l-4 border-[#4f46e5] pl-7 text-3xl font-extrabold leading-snug tracking-tight text-[#1a1c1d] md:text-4xl">
+      <blockquote className="border-l-4 border-[#4f46e5] pl-7 text-3xl font-extrabold leading-snug tracking-tight text-on-surface md:text-4xl">
         "{eventDetail.quote}"
       </blockquote>
-      <div className="mt-10 space-y-7 text-lg leading-9 text-[#464555]">
+      <div className="mt-10 space-y-7 text-lg leading-9 text-on-surface-variant">
         {eventDetail.description.map((paragraph) => (
           <p key={paragraph}>{paragraph}</p>
         ))}
@@ -127,7 +149,7 @@ function LineupSection() {
   return (
     <section className="border-b border-gray-200 py-20">
       <DetailLabel>Artist Lineup</DetailLabel>
-      <h2 className="mb-8 text-4xl font-extrabold tracking-tight text-[#1a1c1d]">Performing tonight</h2>
+      <h2 className="mb-8 text-4xl font-extrabold tracking-tight text-on-surface">Performing tonight</h2>
       <div className="grid gap-6 md:grid-cols-3">
         {eventDetail.lineup.map((artist) => (
           <Card key={artist.name} className="group overflow-hidden rounded-2xl">
@@ -135,9 +157,9 @@ function LineupSection() {
               <ImageWithSkeleton src={artist.image} alt={artist.name} className="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-105" />
             </div>
             <div className="p-5">
-              <h3 className="text-lg font-extrabold text-[#1a1c1d]">{artist.name}</h3>
+              <h3 className="text-lg font-extrabold text-on-surface">{artist.name}</h3>
               <p className="mt-1 text-xs font-extrabold uppercase tracking-[0.18em] text-[#4f46e5]">{artist.role}</p>
-              <p className="mt-4 text-sm leading-6 text-[#464555]">{artist.description}</p>
+              <p className="mt-4 text-sm leading-6 text-on-surface-variant">{artist.description}</p>
             </div>
           </Card>
         ))}
@@ -152,21 +174,21 @@ function ScheduleSection() {
   return (
     <section className="border-b border-gray-200 py-20">
       <DetailLabel>Event Schedule</DetailLabel>
-      <h2 className="mb-10 text-4xl font-extrabold tracking-tight text-[#1a1c1d]">How the night unfolds</h2>
+      <h2 className="mb-10 text-4xl font-extrabold tracking-tight text-on-surface">How the night unfolds</h2>
       <div className="space-y-9">
         {eventDetail.schedule.map((item) => (
           <div key={item.title} className="grid grid-cols-[52px_1fr] gap-5">
             <div className="relative flex justify-center">
-              <span className={`z-10 grid h-12 w-12 place-items-center rounded-full border-2 bg-white ${item.active ? 'border-[#4f46e5] text-[#4f46e5] shadow-[0_0_0_6px_rgba(79,70,229,0.08)]' : 'border-gray-200 text-[#777587]'}`}>
+              <span className={`z-10 grid h-12 w-12 place-items-center rounded-full border-2 bg-white ${item.active ? 'border-[#4f46e5] text-[#4f46e5] shadow-[0_0_0_6px_rgba(79,70,229,0.08)]' : 'border-gray-200 text-outline'}`}>
                 <Icon name={item.icon} style={{ fontSize: 22 }} />
               </span>
               <span className="absolute top-12 h-[calc(100%+36px)] w-px bg-gray-200 last:hidden" />
             </div>
             <div>
               <p className="text-sm font-extrabold text-[#4f46e5]">{item.time}</p>
-              <h3 className="mt-1 text-xl font-extrabold text-[#1a1c1d]">{item.title}</h3>
-              <p className="mt-2 max-w-3xl text-base leading-7 text-[#777587]">{item.description}</p>
-              {item.badge && <span className="mt-3 inline-flex rounded-full border border-gray-200 bg-[#f9f9fa] px-3 py-1 text-xs font-bold text-[#777587]">{item.badge}</span>}
+              <h3 className="mt-1 text-xl font-extrabold text-on-surface">{item.title}</h3>
+              <p className="mt-2 max-w-3xl text-base leading-7 text-outline">{item.description}</p>
+              {item.badge && <span className="mt-3 inline-flex rounded-full border border-gray-200 bg-surface px-3 py-1 text-xs font-bold text-outline">{item.badge}</span>}
             </div>
           </div>
         ))}
@@ -181,25 +203,25 @@ function VenueSection() {
   return (
     <section className="border-b border-gray-200 py-20">
       <DetailLabel>Venue Information</DetailLabel>
-      <h2 className="mb-8 text-4xl font-extrabold tracking-tight text-[#1a1c1d]">{eventDetail.venue}</h2>
+      <h2 className="mb-8 text-4xl font-extrabold tracking-tight text-on-surface">{eventDetail.venue}</h2>
       <Card className="overflow-hidden rounded-3xl shadow-[0_20px_60px_rgba(15,23,42,0.08)]">
         <div className="relative h-80 overflow-hidden">
           <ImageWithSkeleton src={eventDetail.venueImage} alt={eventDetail.venue} className="absolute inset-0 h-full w-full object-cover" />
         </div>
         <div className="p-7">
-          <h3 className="text-2xl font-extrabold text-[#1a1c1d]">{eventDetail.venue}</h3>
-          <p className="mt-2 flex items-center gap-2 text-base text-[#777587]"><Icon name="location_on" style={{ fontSize: 18 }} /> {eventDetail.location}</p>
+          <h3 className="text-2xl font-extrabold text-on-surface">{eventDetail.venue}</h3>
+          <p className="mt-2 flex items-center gap-2 text-base text-outline"><Icon name="location_on" style={{ fontSize: 18 }} /> {eventDetail.location}</p>
           <div className="mt-7 grid gap-4 md:grid-cols-3">
             {eventDetail.venueStats.map(([value, label]) => (
-              <div key={label} className="rounded-2xl border border-gray-200 bg-[#f9f9fa] p-5">
-                <div className="text-3xl font-extrabold text-[#1a1c1d]">{value}</div>
-                <div className="mt-1 text-xs font-extrabold uppercase tracking-[0.18em] text-[#777587]">{label}</div>
+              <div key={label} className="rounded-2xl border border-gray-200 bg-surface p-5">
+                <div className="text-3xl font-extrabold text-on-surface">{value}</div>
+                <div className="mt-1 text-xs font-extrabold uppercase tracking-[0.18em] text-outline">{label}</div>
               </div>
             ))}
           </div>
           <div className="mt-6 flex flex-wrap gap-3">
             {eventDetail.amenities.map((item) => (
-              <span key={item} className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-[#464555]">
+              <span key={item} className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-on-surface-variant">
                 <Icon name="check_circle" style={{ fontSize: 17 }} /> {item}
               </span>
             ))}
@@ -210,21 +232,45 @@ function VenueSection() {
   );
 }
 
+function HighlightsSection() {
+  const eventDetail = useEventDetail();
+  const highlights = eventDetail.highlights;
+
+  if (!highlights || highlights.length === 0) return null;
+
+  return (
+    <section className="border-b border-gray-200 py-20">
+      <DetailLabel>Event Highlights</DetailLabel>
+      <h2 className="mb-8 text-4xl font-extrabold tracking-tight text-on-surface">What makes it special</h2>
+      <div className="grid gap-4 sm:grid-cols-2">
+        {highlights.map((item) => (
+          <div key={item} className="flex items-start gap-4 rounded-2xl border border-gray-200 bg-surface p-5 transition hover:border-[#4f46e5]/30 hover:bg-[#eef0ff]/40">
+            <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[#4f46e5]/10 text-[#4f46e5]">
+              <Icon name="check" style={{ fontSize: 18 }} />
+            </span>
+            <span className="text-base font-semibold text-on-surface">{item}</span>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function TicketTiers() {
   const eventDetail = useEventDetail();
 
   return (
     <section id="ticket-tiers" className="py-20">
       <DetailLabel>Ticket Tiers</DetailLabel>
-      <h2 className="mb-8 text-4xl font-extrabold tracking-tight text-[#1a1c1d]">Choose your experience</h2>
+      <h2 className="mb-8 text-4xl font-extrabold tracking-tight text-on-surface">Choose your experience</h2>
       <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
         {eventDetail.ticketTiers.map((tier) => (
           <Card key={tier.name} className={`relative flex min-h-[360px] flex-col rounded-3xl p-6 ${tier.popular ? 'border-[#4f46e5] bg-[#eef0ff] ring-2 ring-[#4f46e5]' : ''}`}>
             {tier.popular && <span className="absolute right-6 top-0 rounded-b-lg bg-[#4f46e5] px-5 py-2 text-xs font-extrabold uppercase tracking-[0.18em] text-white">Most Popular</span>}
             <p className="text-sm font-extrabold uppercase tracking-[0.24em] text-[#aaa6a3]">{tier.name}</p>
-            <div className="mt-5 text-4xl font-extrabold tracking-tight text-[#1a1c1d]">{tier.price}</div>
+            <div className="mt-5 text-4xl font-extrabold tracking-tight text-on-surface">{tier.price}</div>
             <p className="mt-1 text-sm text-[#aaa6a3]">per person</p>
-            <ul className="mt-6 grid gap-3 text-sm text-[#464555]">
+            <ul className="mt-6 grid gap-3 text-sm text-on-surface-variant">
               {tier.features.map((feature) => (
                 <li key={feature} className="flex gap-2"><Icon name="check_circle" className="text-green-500" style={{ fontSize: 18 }} /> {feature}</li>
               ))}
@@ -233,7 +279,7 @@ function TicketTiers() {
               ))}
             </ul>
             <p className={`mt-auto pt-6 text-sm font-extrabold ${tier.status.includes('Only') ? 'text-red-500' : tier.status.includes('Selling') ? 'text-orange-500' : 'text-green-600'}`}>• {tier.status}</p>
-            <Link to={`/events/${eventDetail.slug}/seats?tier=${encodeURIComponent(tier.name)}`} className={`mt-5 rounded-xl px-5 py-3 text-center text-sm font-extrabold transition ${tier.popular ? 'bg-[#4f46e5] text-white hover:bg-[#3730a3]' : 'border border-gray-200 bg-[#f9f9fa] text-[#464555] hover:border-[#3730a3] hover:text-[#3730a3]'}`}>
+            <Link to={`/events/${eventDetail.slug}/seats?tier=${encodeURIComponent(tier.name)}`} className={`mt-5 rounded-xl px-5 py-3 text-center text-sm font-extrabold transition ${tier.popular ? 'bg-[#4f46e5] text-white hover:bg-brand-indigo' : 'border border-gray-200 bg-surface text-on-surface-variant hover:border-brand-indigo hover:text-brand-indigo'}`}>
               Select {tier.name}
             </Link>
           </Card>
@@ -250,7 +296,7 @@ function SimilarEvents() {
     <section className="border-t border-gray-200 px-5 py-20 md:px-10">
       <div className="mx-auto max-w-[1280px]">
         <DetailLabel>Similar Events</DetailLabel>
-        <h2 className="mb-10 text-4xl font-extrabold tracking-tight text-[#1a1c1d]">You might also love</h2>
+        <h2 className="mb-10 text-4xl font-extrabold tracking-tight text-on-surface">You might also love</h2>
         <div className="grid gap-6 md:grid-cols-3">
           {eventDetail.similarEvents.map((event) => (
             <Card key={event.title} className="group overflow-hidden rounded-3xl">
@@ -260,11 +306,11 @@ function SimilarEvents() {
               </div>
               <div className="p-5">
                 <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#4f46e5]">{event.category}</p>
-                <h3 className="mt-2 text-xl font-extrabold text-[#1a1c1d]">{event.title}</h3>
-                <p className="mt-2 text-sm text-[#777587]">{event.venue} · {event.date}</p>
+                <h3 className="mt-2 text-xl font-extrabold text-on-surface">{event.title}</h3>
+                <p className="mt-2 text-sm text-outline">{event.venue} · {event.date}</p>
                 <div className="mt-5 flex items-center justify-between border-t border-gray-200 pt-4 text-sm font-extrabold">
-                  <span className="inline-flex items-center gap-2 text-[#464555]"><Icon name="calendar_today" style={{ fontSize: 17 }} /> {event.date}</span>
-                  <span className="text-[#1a1c1d]">{event.price}</span>
+                  <span className="inline-flex items-center gap-2 text-on-surface-variant"><Icon name="calendar_today" style={{ fontSize: 17 }} /> {event.date}</span>
+                  <span className="text-on-surface">{event.price}</span>
                 </div>
               </div>
             </Card>
@@ -283,29 +329,30 @@ export default function EventDetails() {
 
   if (!eventDetail) {
     return (
-      <main className="px-5 pb-24 pt-40 md:px-10">
-        <div className="mx-auto max-w-[760px] rounded-2xl border border-gray-200 bg-white p-10 text-center">
-          <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-[#4f46e5]">Event not found</p>
-          <h1 className="mt-4 text-4xl font-extrabold tracking-tight text-[#1a1c1d]">This event is not available</h1>
-          <p className="mt-4 text-[#464555]">Browse current MehfilX experiences and choose another live event.</p>
-          <Link to="/events" className="btn-primary mt-8 inline-flex rounded-xl px-6 py-3 text-sm font-bold">Explore Events</Link>
-        </div>
+      <main className="px-5 pb-24 pt-40 md:px-10 min-h-[60vh]">
+        <EmptyState 
+          icon="event_busy"
+          title="This event is not available"
+          message="Browse current MehfilX experiences and choose another live event."
+          actionLabel="Explore Events"
+          onAction={() => window.location.href = '/events'}
+        />
       </main>
     );
   }
 
   return (
     <EventDetailContext.Provider value={eventDetail}>
-      <main className="bg-white">
+      <main>
         <Hero />
         <section className="px-5 md:px-10">
           <div className="mx-auto grid max-w-[1280px] gap-12 py-20 lg:grid-cols-[1fr_420px]">
             <div>
               <AboutSection />
+              <HighlightsSection />
               <LineupSection />
               <ScheduleSection />
               <VenueSection />
-              <TicketTiers />
             </div>
             <div className="hidden lg:block">
               <BookingPanel />

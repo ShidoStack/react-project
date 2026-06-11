@@ -30,6 +30,13 @@ const ticketTierPresets = {
     { name: 'Weekend Pass', price: '₹4,999', status: 'Selling fast', popular: true, features: ['Two-day access', 'Priority entry', 'Merch voucher'] },
     { name: 'Artist Lounge', price: '₹8,999', status: 'Only 24 left', features: ['Lounge deck', 'Premium F&B', 'Dedicated viewing area'] },
   ],
+  sports: [
+    { name: 'Economy', price: '₹700', status: 'Available', features: ['General Stand seating', 'Access to food court'] },
+    { name: 'Standard', price: '₹1,500', status: 'Selling fast', features: ['East/West Stand seating', 'Priority entry'] },
+    { name: 'Premium', price: '₹3,000', status: 'Only 100 left', popular: true, features: ['North/South Stand seating', 'Complimentary snack & drink'] },
+    { name: 'VIP', price: '₹5,000', status: 'Only 20 left', features: ['Pavilion End seating', 'VIP Lounge access'] },
+    { name: 'Corporate Box', price: '₹8,000', status: 'Only 5 boxes left', features: ['Private suite', 'Luxury catering', 'Souvenir ticket'] },
+  ],
 };
 
 const similarEvents = [
@@ -151,6 +158,14 @@ const detailOverrides = {
       { name: 'Open Mic Selects', role: 'Support Acts', image: eventImages.comedy, description: 'Three short support sets selected from the MehfilX emerging artist program.' },
     ],
   },
+  'india-vs-australia-1st-test': {
+    quote: 'The ultimate battle of grit and skill on the pitch live from Wankhede Stadium.',
+    ticketPreset: 'sports',
+    lineup: [
+      { name: 'Team India', role: 'Home Team', image: 'https://images.unsplash.com/photo-1531415080290-bc9854509fe5?auto=format&fit=crop&w=900&q=85', description: 'The Men in Blue led by India\'s top cricket talent.' },
+      { name: 'Team Australia', role: 'Away Team', image: 'https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?auto=format&fit=crop&w=900&q=85', description: 'The formidable Australian cricket team on tour.' },
+    ],
+  },
 };
 
 function buildSchedule(event) {
@@ -184,7 +199,17 @@ function buildDefaultDetail(event) {
     description: [
       `${event.title} brings a carefully produced ${event.category.toLowerCase()} experience to ${event.city}, hosted at ${event.venue}. Expect thoughtful pacing, premium venue operations, and a night shaped for discovery.`,
       event.description,
+      'Program Flow: The evening will begin with an opening set designed to set the mood, followed by the main act. There will be a short intermission midway through the performance.',
+      'What to Expect: A professionally curated environment with high-quality sound, comfortable seating options, and a selection of premium food and beverages available for purchase.',
+      'Rules & Guidelines: Please arrive at least 30 minutes before the show starts. Latecomers may be asked to wait for a suitable break in the performance. Flash photography and outside food/drinks are strictly prohibited.',
       'Organizer details include timing, access rules, venue notes, ticket tiers, and support information so guests can book with confidence.',
+    ],
+    highlights: [
+      'Live performance with full band setup',
+      'Premium sound system by Harman Audio',
+      'Complimentary parking for Premium & VIP tiers',
+      'Food & beverage available on-site',
+      'Professional photography coverage',
     ],
     lineup: [
       { name: event.title, role: event.category, image: event.image, description: event.description },

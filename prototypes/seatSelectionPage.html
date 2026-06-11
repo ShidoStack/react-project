@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Select Seats — MehfilX</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:14px;scroll-behavior:smooth}
+body{
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  background:#F7F6F5;color:#1C1917;
+  -webkit-font-smoothing:antialiased;min-height:100vh;overflow-x:hidden;
+}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#D6D3D1;border-radius:3px}
+
+:root{
+  --bg:#F7F6F5;
+  --white:#ffffff;
+  --off:#F0EEEC;
+  --surface:#ffffff;
+  --border:#E7E5E4;
+  --border2:#D6D3D1;
+  --muted:#A8A29E;
+  --subtle:#78716C;
+  --body:#44403C;
+  --ink:#1C1917;
+  --black:#0A0A0A;
+  --indigo:#6366F1;
+  --indigo-d:#4F46E5;
+  --indigo-l:#818CF8;
+  --indigo-bg:#EEF2FF;
+  --indigo-b:rgba(99,102,241,.2);
+  --seat-avail:#CBD5E1;
+  --seat-avail-h:#94A3B8;
+  --seat-sel:#6366F1;
+  --seat-sel-h:#4F46E5;
+  --seat-res:#FECACA;
+  --seat-res-b:#FCA5A5;
+  --nav-h:58px;
+}
+
+/* ─── NAV ────────────────────────────────────────────── */
+.nav{
+  position:fixed;top:0;left:0;right:0;z-index:300;height:var(--nav-h);
+  background:rgba(255,255,255,.94);backdrop-filter:blur(20px) saturate(180%);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 24px;gap:0;
+}
+.nav-logo{
+  display:flex;align-items:center;gap:7px;font-size:15px;font-weight:800;
+  letter-spacing:-.04em;color:var(--black);text-decoration:none;flex-shrink:0;
+}
+.nav-logo-box{
+  width:24px;height:24px;background:var(--black);border-radius:5px;
+  display:flex;align-items:center;justify-content:center;
+}
+.nav-logo-box svg{width:13px;height:13px}
+.nav-divider{width:1px;height:20px;background:var(--border);margin:0 20px;flex-shrink:0}
+.nav-event-block{display:flex;flex-direction:column}
+.nav-event-name{font-size:13px;font-weight:700;color:var(--black);letter-spacing:-.02em}
+.nav-event-meta{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px;margin-top:1px}
+.nav-dot{width:3px;height:3px;border-radius:50%;background:var(--border2)}
+.nav-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.mode-toggle{
+  display:flex;align-items:center;background:var(--off);border:1.5px solid var(--border);
+  border-radius:8px;padding:3px;gap:2px;
+}
+.mode-btn{
+  display:flex;align-items:center;gap:5px;height:28px;padding:0 12px;
+  border:none;border-radius:5px;font-size:11px;font-weight:600;
+  cursor:pointer;font-family:inherit;transition:all .15s;
+  color:var(--subtle);background:transparent;white-space:nowrap;
+}
+.mode-btn:hover{color:var(--ink)}
+.mode-btn.act{background:var(--black);color:#fff;box-shadow:0 2px 6px rgba(0,0,0,.15)}
+.step-pill{
+  font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--indigo);background:var(--indigo-bg);padding:4px 10px;
+  border-radius:999px;border:1px solid var(--indigo-b);white-space:nowrap;
+}
+
+/* ─── LAYOUT ─────────────────────────────────────────── */
+.page{display:flex;padding-top:var(--nav-h);min-height:100vh}
+.map-area{
+  flex:1;display:flex;flex-direction:column;align-items:center;
+  padding:28px 20px 100px;overflow-x:auto;min-width:0;
+}
+.sidebar{
+  width:296px;flex-shrink:0;background:var(--white);
+  border-left:1.5px solid var(--border);
+  position:sticky;top:var(--nav-h);height:calc(100vh - var(--nav-h));
+  display:flex;flex-direction:column;overflow:hidden;
+}
+
+/* ─── LEGEND ─────────────────────────────────────────── */
+.legend{
+  display:flex;align-items:center;justify-content:center;
+  gap:18px;flex-wrap:wrap;margin-bottom:20px;
+  padding:10px 16px;background:var(--white);border:1.5px solid var(--border);
+  border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.04);
+}
+.leg-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--body);font-weight:500}
+.leg-swatch{
+  width:16px;height:13px;border-radius:3px;flex-shrink:0;border:1.5px solid transparent;
+}
+.ls-avail{background:var(--seat-avail);border-color:var(--seat-avail-h)}
+.ls-sel{background:var(--seat-sel);border-color:var(--indigo-l);box-shadow:0 0 5px rgba(99,102,241,.35)}
+.ls-res{background:var(--seat-res);border-color:var(--seat-res-b)}
+.leg-sep{width:1px;height:14px;background:var(--border)}
+.zone-pill{
+  display:inline-flex;align-items:center;padding:2px 7px;border-radius:999px;
+  font-size:9px;font-weight:700;letter-spacing:.05em;
+}
+.zp-corp{background:#FEF9C3;color:#854D0E;border:1px solid #FDE047}
+.zp-prem{background:var(--indigo-bg);color:var(--indigo);border:1px solid var(--indigo-b)}
+.zp-gen{background:#DCFCE7;color:#166534;border:1px solid #86EFAC}
+.zp-vip{background:#FEF9C3;color:#854D0E;border:1px solid #FDE047}
+.zp-std{background:var(--indigo-bg);color:var(--indigo);border:1px solid var(--indigo-b)}
+.zp-eco{background:#F1F5F9;color:#475569;border:1px solid #CBD5E1}
+
+/* ─── VENUE TITLE ────────────────────────────────────── */
+.venue-title-block{text-align:center;margin-bottom:20px}
+.venue-title-block h2{
+  font-size:17px;font-weight:750;color:var(--black);letter-spacing:-.025em;margin-bottom:3px;
+}
+.venue-title-block p{font-size:11px;color:var(--muted)}
+
+/* ─── SVG STADIUM CONTAINER ──────────────────────────── */
+#stadiumSvgWrap{
+  width:100%;display:flex;justify-content:center;
+  overflow-x:auto;
+}
+#stadiumSvg{overflow:visible}
+
+/* Seat rect styles via SVG class */
+.sv-seat{cursor:pointer;transition:all .12s ease}
+.sv-seat.avail{fill:#CBD5E1;stroke:#94A3B8;stroke-width:.8}
+.sv-seat.avail:hover{fill:#6366F1;stroke:#4F46E5;filter:drop-shadow(0 0 4px rgba(99,102,241,.5))}
+.sv-seat.sel{fill:#6366F1;stroke:#4F46E5;stroke-width:1;filter:drop-shadow(0 0 5px rgba(99,102,241,.45))}
+.sv-seat.res{fill:#FECACA;stroke:#FCA5A5;stroke-width:.8;cursor:not-allowed;pointer-events:none}
+
+/* Pitch */
+.sv-pitch-outer{fill:#DCFCE7;stroke:#86EFAC;stroke-width:1.5}
+.sv-pitch-inner{fill:#BBF7D0;stroke:#4ADE80;stroke-width:1}
+.sv-pitch-strip{fill:#A3E635;stroke:none;opacity:.4}
+
+/* ─── CONCERT SEATING ────────────────────────────────── */
+#concertWrap{width:100%;display:flex;flex-direction:column;align-items:center}
+.stage-el{
+  width:260px;height:36px;border-radius:6px 6px 0 0;
+  background:linear-gradient(to bottom,#E7E5E4,#F0EEEC);
+  border:1.5px solid var(--border2);
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--subtle);position:relative;overflow:hidden;margin-bottom:0;
+}
+.stage-el::after{
+  content:'';position:absolute;bottom:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,var(--indigo),transparent);
+}
+.stage-curve-el{
+  width:300px;height:14px;
+  border-radius:0 0 50% 50%;
+  background:linear-gradient(to bottom,#F0EEEC,transparent);
+  border-left:1.5px solid var(--border);border-right:1.5px solid var(--border);
+  margin-bottom:24px;opacity:.7;
+}
+#concertSvgWrap{width:100%;display:flex;justify-content:center;overflow-x:auto}
+#concertSvg{overflow:visible}
+
+/* ─── SVG concert seats ──────────────────────────────── */
+.cs-seat{cursor:pointer;transition:all .12s ease}
+.cs-seat.avail{fill:#CBD5E1;stroke:#94A3B8;stroke-width:.8}
+.cs-seat.avail:hover{fill:#6366F1;stroke:#4F46E5;filter:drop-shadow(0 0 4px rgba(99,102,241,.5))}
+.cs-seat.sel{fill:#6366F1;stroke:#4F46E5;stroke-width:1;filter:drop-shadow(0 0 5px rgba(99,102,241,.4))}
+.cs-seat.res{fill:#FECACA;stroke:#FCA5A5;stroke-width:.8;cursor:not-allowed;pointer-events:none}
+
+/* ─── TOOLTIP ────────────────────────────────────────── */
+#tip{
+  position:fixed;z-index:999;pointer-events:none;
+  background:var(--black);color:#fff;
+  padding:7px 11px;border-radius:7px;
+  font-size:11px;font-weight:600;letter-spacing:-.01em;
+  box-shadow:0 8px 20px rgba(0,0,0,.2);
+  white-space:nowrap;opacity:0;transition:opacity .1s;
+}
+#tip.on{opacity:1}
+
+/* ─── SIDEBAR ────────────────────────────────────────── */
+.sb-top{padding:16px 18px 12px;border-bottom:1.5px solid var(--border)}
+.sb-heading{font-size:14px;font-weight:750;color:var(--black);letter-spacing:-.02em}
+.sb-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.sb-empty{
+  flex:1;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;padding:32px 20px;text-align:center;
+}
+.sb-empty-ico{
+  width:46px;height:46px;border-radius:12px;background:var(--off);
+  border:1.5px solid var(--border);display:flex;align-items:center;
+  justify-content:center;font-size:20px;margin-bottom:12px;
+}
+.sb-empty-txt{font-size:12px;color:var(--muted);line-height:1.55;max-width:150px}
+.sb-list{flex:1;overflow-y:auto}
+.sb-item{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:9px 18px;border-bottom:1px solid var(--border);transition:background .1s;
+}
+.sb-item:hover{background:var(--off)}
+.sb-item:last-child{border-bottom:none}
+.sb-item-left{display:flex;align-items:center;gap:8px}
+.sb-dot{width:8px;height:8px;border-radius:2px;background:var(--indigo);flex-shrink:0}
+.sb-lbl{font-size:12px;font-weight:600;color:var(--black);letter-spacing:-.01em}
+.sb-tier{font-size:10px;color:var(--muted);margin-top:1px}
+.sb-price{font-size:13px;font-weight:700;color:var(--black);letter-spacing:-.02em}
+.sb-rm{
+  background:none;border:none;cursor:pointer;color:var(--muted);
+  padding:2px 5px;border-radius:3px;font-size:14px;line-height:1;
+  transition:all .12s;margin-left:4px;
+}
+.sb-rm:hover{background:#FEE2E2;color:#DC2626}
+.sb-foot{padding:14px 18px;border-top:1.5px solid var(--border);flex-shrink:0}
+.sb-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px}
+.sb-row-l{font-size:11px;color:var(--subtle);font-weight:500}
+.sb-row-r{font-size:11px;font-weight:600;color:var(--body)}
+.sb-grand{
+  display:flex;align-items:center;justify-content:space-between;
+  padding-top:8px;border-top:1px solid var(--border);margin-bottom:14px;margin-top:6px;
+}
+.sb-grand-l{font-size:13px;font-weight:700;color:var(--black)}
+.sb-grand-r{font-size:22px;font-weight:800;color:var(--black);letter-spacing:-.04em}
+.btn-pay{
+  width:100%;height:44px;background:var(--black);color:#fff;border:none;
+  border-radius:8px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;
+  transition:all .15s;display:flex;align-items:center;justify-content:center;gap:7px;
+  box-shadow:0 2px 8px rgba(0,0,0,.15);
+}
+.btn-pay:hover:not(:disabled){background:#27272A;box-shadow:0 6px 18px rgba(0,0,0,.2);transform:translateY(-1px)}
+.btn-pay:disabled{opacity:.35;cursor:not-allowed;transform:none;box-shadow:none}
+.btn-clear{
+  width:100%;height:34px;border:1.5px solid var(--border);border-radius:7px;
+  background:transparent;color:var(--subtle);font-size:12px;font-weight:600;
+  font-family:inherit;cursor:pointer;transition:all .12s;margin-top:7px;
+}
+.btn-clear:hover{background:var(--off);border-color:var(--border2);color:var(--body)}
+
+/* ─── MOBILE BAR ─────────────────────────────────────── */
+.mob-bar{
+  display:none;position:fixed;bottom:0;left:0;right:0;z-index:200;
+  background:rgba(255,255,255,.96);backdrop-filter:blur(16px);
+  border-top:1.5px solid var(--border);padding:12px 20px;
+}
+.mob-bar-in{display:flex;align-items:center;justify-content:space-between;gap:12px;max-width:500px;margin:0 auto}
+.mob-seats{font-size:11px;color:var(--muted)}
+.mob-price{font-size:20px;font-weight:800;color:var(--black);letter-spacing:-.04em}
+.mob-btn{
+  height:42px;padding:0 22px;background:var(--black);color:#fff;
+  border:none;border-radius:8px;font-size:13px;font-weight:700;font-family:inherit;
+  cursor:pointer;transition:background .12s;white-space:nowrap;
+}
+.mob-btn:disabled{opacity:.3;cursor:not-allowed}
+.mob-btn:hover:not(:disabled){background:#27272A}
+
+/* ─── TOAST ──────────────────────────────────────────── */
+#toast{
+  position:fixed;bottom:22px;left:50%;z-index:9999;
+  transform:translateX(-50%) translateY(60px);
+  background:var(--black);color:#fff;
+  padding:10px 18px;border-radius:8px;font-size:12px;font-weight:600;
+  display:flex;align-items:center;gap:8px;
+  box-shadow:0 8px 24px rgba(0,0,0,.2);
+  transition:transform .25s cubic-bezier(.32,.72,0,1),opacity .25s;
+  opacity:0;pointer-events:none;white-space:nowrap;
+}
+#toast.on{transform:translateX(-50%) translateY(0);opacity:1}
+
+@media(max-width:860px){
+  .sidebar{display:none}
+  .mob-bar{display:block}
+  .map-area{padding-bottom:80px}
+}
+@media(max-width:580px){
+  .nav-event-block{display:none}
+  .nav-divider{display:none}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <a href="#" class="nav-logo">
+    <div class="nav-logo-box">
+      <svg viewBox="0 0 14 14" fill="none">
+        <path d="M1.5 11V3.5L7 7 12.5 3.5V11" stroke="white" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    MehfilX
+  </a>
+  <div class="nav-divider"></div>
+  <div class="nav-event-block">
+    <div class="nav-event-name" id="navName">India vs Australia · 1st Test</div>
+    <div class="nav-event-meta">
+      <span id="navVenue">Wankhede Stadium, Mumbai</span>
+      <span class="nav-dot"></span>
+      <span id="navDate">Fri, Nov 7, 2025</span>
+    </div>
+  </div>
+  <div class="nav-right">
+    <div class="mode-toggle">
+      <button class="mode-btn" id="btnConcert" onclick="setMode('concert')">
+        <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
+          <path d="M1 9.5V5L5.5 2 10 5v4.5" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/>
+          <path d="M4 9.5V7h3v2.5" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/>
+        </svg>
+        Stage Event
+      </button>
+      <button class="mode-btn act" id="btnSports" onclick="setMode('sports')">
+        <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
+          <ellipse cx="5.5" cy="5.5" rx="4.5" ry="4.5" stroke="currentColor" stroke-width="1.3"/>
+          <path d="M2 5.5h7M5.5 1.5C4.2 3 4.2 8 5.5 9.5" stroke="currentColor" stroke-width="1.3"/>
+        </svg>
+        Sports
+      </button>
+    </div>
+    <span class="step-pill">Step 2 of 3 — Select Seats</span>
+  </div>
+</nav>
+
+<!-- PAGE -->
+<div class="page">
+  <div class="map-area" id="mapArea">
+    <!-- Content injected by JS -->
+  </div>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sb-top">
+      <div class="sb-heading">Your Seats</div>
+      <div class="sb-sub" id="sbSub">No seats selected</div>
+    </div>
+    <div id="sbEmpty" class="sb-empty">
+      <div class="sb-empty-ico">🪑</div>
+      <p class="sb-empty-txt">Tap any available seat on the map to add it here</p>
+    </div>
+    <div id="sbList" class="sb-list" style="display:none"></div>
+    <div class="sb-foot">
+      <div class="sb-row"><span class="sb-row-l">Subtotal</span><span class="sb-row-r" id="sbSub2">₹0</span></div>
+      <div class="sb-row"><span class="sb-row-l">Booking fee (5%)</span><span class="sb-row-r" id="sbFee">₹0</span></div>
+      <div class="sb-grand">
+        <span class="sb-grand-l">Total</span>
+        <span class="sb-grand-r" id="sbTotal">₹0</span>
+      </div>
+      <button class="btn-pay" id="btnPay" disabled onclick="doPay()">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <rect x="1" y="4" width="12" height="8" rx="1.5" stroke="currentColor" stroke-width="1.4"/>
+          <path d="M1 7h12" stroke="currentColor" stroke-width="1.4"/>
+        </svg>
+        Proceed to Pay
+      </button>
+      <button class="btn-clear" onclick="clearAll()">Clear selection</button>
+    </div>
+  </aside>
+</div>
+
+<!-- MOBILE BAR -->
+<div class="mob-bar">
+  <div class="mob-bar-in">
+    <div>
+      <div class="mob-seats" id="mobSeats">0 seats selected</div>
+      <div class="mob-price" id="mobPrice">₹0</div>
+    </div>
+    <button class="mob-btn" id="mobBtn" disabled onclick="doPay()">Proceed to Pay</button>
+  </div>
+</div>
+
+<!-- TOOLTIP -->
+<div id="tip"></div>
+
+<!-- TOAST -->
+<div id="toast"><span id="tIco"></span><span id="tTxt"></span></div>
+
+<script>
+// =====================================================
+//  STATE
+// =====================================================
+var mode      = 'sports';
+var selected  = {};   // key -> {key,rowLabel,seatNum,zone,price,label}
+var PRICES    = {vip:9999, premium:4999, standard:2499, economy:1499, corporate:12000, general:1500};
+var ZONENAME  = {vip:'VIP', premium:'Premium', standard:'Standard', economy:'Economy', corporate:'Corporate Box', general:'General Stand'};
+var ZONECLASS = {vip:'zp-vip', premium:'zp-prem', standard:'zp-std', economy:'zp-eco', corporate:'zp-corp', general:'zp-gen'};
+
+// Seeded deterministic random
+function sr(n){ var x=Math.sin(n*9301+49297)*233280; return x-Math.floor(x); }
+function isRes(idx){ return sr(idx) < 0.28; }
+
+// =====================================================
+//  HELPERS — polar → cartesian on an ellipse
+// =====================================================
+function ellipsePoint(cx, cy, rx, ry, angleDeg){
+  var a = (angleDeg - 90) * Math.PI / 180;  // -90 so 0deg = top
+  return { x: cx + rx * Math.cos(a), y: cy + ry * Math.sin(a) };
+}
+
+// =====================================================
+//  BUILD SPORTS STADIUM  (oval with curved stands)
+// =====================================================
+function buildSports(){
+  var mapArea = document.getElementById('mapArea');
+  mapArea.innerHTML = '';
+
+  /* Venue header */
+  var hdr = document.createElement('div');
+  hdr.className = 'venue-title-block';
+  hdr.innerHTML = '<h2>Wankhede Stadium — All Stands</h2><p>Click any seat to select · seats arc around the oval pitch</p>';
+  mapArea.appendChild(hdr);
+
+  /* Legend */
+  mapArea.appendChild(buildLegend('sports'));
+
+  /* SVG wrapper */
+  var wrap = document.createElement('div');
+  wrap.id = 'stadiumSvgWrap';
+  mapArea.appendChild(wrap);
+
+  var W = 780, H = 720;
+  var cx = W/2, cy = H/2;
+
+  var svg = makeSVG(W, H);
+  svg.id = 'stadiumSvg';
+  wrap.appendChild(svg);
+
+  // ── PITCH ──────────────────────────────────────
+  // Outer oval
+  addEllipse(svg, cx, cy, 115, 85, 'sv-pitch-outer');
+  // Inner circle
+  addEllipse(svg, cx, cy, 55, 40, 'sv-pitch-inner');
+  // Pitch strip (rectangle rotated)
+  var strip = document.createElementNS('http://www.w3.org/2000/svg','rect');
+  strip.setAttribute('x', cx - 5); strip.setAttribute('y', cy - 30);
+  strip.setAttribute('width', 10); strip.setAttribute('height', 60);
+  strip.setAttribute('rx', 2); strip.setAttribute('class','sv-pitch-strip');
+  svg.appendChild(strip);
+  // Pitch labels
+  addText(svg, cx, cy - 6, 'CRICKET', 8, '#166534', true);
+  addText(svg, cx, cy + 8, 'PITCH',   7, '#4ADE80', false);
+
+  // Crease marks
+  addLine(svg, cx-4, cy-28, cx+4, cy-28, '#4ADE80', .5, .3);
+  addLine(svg, cx-4, cy+28, cx+4, cy+28, '#4ADE80', .5, .3);
+
+  // ── STANDS configuration ────────────────────────
+  // Each stand: startAngle, endAngle, rows, colsPerRow, zone, label, baseRx, baseRy, rowGap
+  var stands = [
+    // North stand — arcs across the top  (270..450 deg, i.e. 270..360..90 → top arc)
+    { id:'N',  label:'NORTH STAND',  zone:'corporate', startA:195, endA:345,
+      rows:5, colsPerRow:26, baseRx:148, baseRy:110, rowGap:18, labelAngle:270 },
+    // South stand — bottom arc
+    { id:'S',  label:'SOUTH STAND',  zone:'general',   startA:15,  endA:165,
+      rows:5, colsPerRow:26, baseRx:148, baseRy:110, rowGap:18, labelAngle:90 },
+    // East stand — right arc
+    { id:'E',  label:'EAST STAND',   zone:'premium',   startA:300, endA:420,
+      rows:4, colsPerRow:16, baseRx:148, baseRy:110, rowGap:18, labelAngle:0 },
+    // West stand — left arc
+    { id:'W',  label:'WEST STAND',   zone:'premium',   startA:120, endA:240,
+      rows:4, colsPerRow:16, baseRx:148, baseRy:110, rowGap:18, labelAngle:180 }
+  ];
+
+  var seatIndex = 0;
+
+  stands.forEach(function(stand){
+    var spanDeg = stand.endA - stand.startA;
+
+    for(var row = 0; row < stand.rows; row++){
+      var rowNum = row + 1;
+      // Each row sits on a larger ellipse as row increases (further from pitch)
+      var rx = stand.baseRx + row * stand.rowGap * 1.1;
+      var ry = stand.baseRy + row * stand.rowGap * 0.85;
+      var cols = stand.colsPerRow;
+
+      // Row label — place at midpoint angle
+      var midA = (stand.startA + stand.endA) / 2;
+      var labelRx = rx + 8, labelRy = ry + 6;
+      var lp = ellipsePoint(cx, cy, labelRx, labelRy, midA);
+      var rowLbl = document.createElementNS('http://www.w3.org/2000/svg','text');
+      rowLbl.setAttribute('x', lp.x); rowLbl.setAttribute('y', lp.y);
+      rowLbl.setAttribute('text-anchor','middle'); rowLbl.setAttribute('dominant-baseline','middle');
+      rowLbl.setAttribute('font-size','7'); rowLbl.setAttribute('fill','#A8A29E');
+      rowLbl.setAttribute('font-weight','600');
+      rowLbl.textContent = rowNum;
+      svg.appendChild(rowLbl);
+
+      for(var col = 0; col < cols; col++){
+        var t = cols > 1 ? col / (cols - 1) : 0.5;
+        var angleDeg = stand.startA + t * spanDeg;
+
+        var pt = ellipsePoint(cx, cy, rx, ry, angleDeg);
+
+        // Rotation of seat: tangent to ellipse = angle + 90
+        var tangentAngle = angleDeg; // seat faces center
+
+        var key = stand.id + '-R' + rowNum + '-C' + (col+1);
+        var reserved = isRes(seatIndex++);
+
+        var g = document.createElementNS('http://www.w3.org/2000/svg','g');
+        g.setAttribute('transform',
+          'translate('+pt.x.toFixed(1)+','+pt.y.toFixed(1)+') rotate('+tangentAngle.toFixed(1)+')');
+
+        var rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+        rect.setAttribute('x', -5); rect.setAttribute('y', -4);
+        rect.setAttribute('width', 10); rect.setAttribute('height', 8);
+        rect.setAttribute('rx', 2);
+        rect.setAttribute('class', 'sv-seat ' + (reserved ? 'res' : 'avail'));
+        rect.setAttribute('data-key',  key);
+        rect.setAttribute('data-row',  stand.id+'-R'+rowNum);
+        rect.setAttribute('data-col',  col+1);
+        rect.setAttribute('data-zone', stand.zone);
+        rect.setAttribute('data-price', PRICES[stand.zone]);
+        rect.setAttribute('data-lbl',  stand.label+' · R'+rowNum+' S'+(col+1));
+
+        if(!reserved){
+          rect.addEventListener('click',  onSeatClick);
+          rect.addEventListener('mouseenter', onSeatEnter);
+          rect.addEventListener('mouseleave', onSeatLeave);
+        }
+
+        // Back-of-seat nub
+        var nub = document.createElementNS('http://www.w3.org/2000/svg','rect');
+        nub.setAttribute('x', -3.5); nub.setAttribute('y', -6.5);
+        nub.setAttribute('width', 7); nub.setAttribute('height', 3);
+        nub.setAttribute('rx', 1.5);
+        nub.setAttribute('fill', reserved ? '#FECACA' : '#CBD5E1');
+        nub.setAttribute('opacity', '.6');
+        nub.setAttribute('pointer-events','none');
+
+        g.appendChild(nub);
+        g.appendChild(rect);
+        svg.appendChild(g);
+      }
+    }
+
+    // Stand label
+    var lp2 = ellipsePoint(cx, cy,
+      stand.baseRx + stand.rows * stand.rowGap * 1.1 + 22,
+      stand.baseRy + stand.rows * stand.rowGap * 0.85 + 16,
+      (stand.startA + stand.endA)/2
+    );
+    var bgRect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+    var tw = stand.label.length * 5.5 + 14;
+    bgRect.setAttribute('x', lp2.x - tw/2); bgRect.setAttribute('y', lp2.y - 8);
+    bgRect.setAttribute('width', tw); bgRect.setAttribute('height', 15);
+    bgRect.setAttribute('rx', 7);
+    var zoneColors = {corporate:'#FEF9C3', premium:'#EEF2FF', general:'#DCFCE7'};
+    bgRect.setAttribute('fill', zoneColors[stand.zone] || '#F1F5F9');
+    bgRect.setAttribute('stroke', stand.zone==='corporate'?'#FDE047':stand.zone==='premium'?'rgba(99,102,241,.3)':'#86EFAC');
+    bgRect.setAttribute('stroke-width','1');
+    svg.appendChild(bgRect);
+
+    var lblT = document.createElementNS('http://www.w3.org/2000/svg','text');
+    lblT.setAttribute('x', lp2.x); lblT.setAttribute('y', lp2.y + 0.5);
+    lblT.setAttribute('text-anchor','middle'); lblT.setAttribute('dominant-baseline','middle');
+    lblT.setAttribute('font-size','7.5'); lblT.setAttribute('font-weight','700');
+    lblT.setAttribute('letter-spacing','.08em');
+    var txtColors = {corporate:'#854D0E', premium:'#4F46E5', general:'#166534'};
+    lblT.setAttribute('fill', txtColors[stand.zone] || '#475569');
+    lblT.textContent = stand.label;
+    svg.appendChild(lblT);
+
+    // Subtle arc guide line for this stand
+    var arcPath = buildArcPath(cx, cy,
+      stand.baseRx - 4, stand.baseRy - 3,
+      stand.startA, stand.endA);
+    var arcEl = document.createElementNS('http://www.w3.org/2000/svg','path');
+    arcEl.setAttribute('d', arcPath);
+    arcEl.setAttribute('fill','none');
+    arcEl.setAttribute('stroke', stand.zone==='corporate'?'rgba(251,191,36,.2)':stand.zone==='premium'?'rgba(99,102,241,.15)':'rgba(74,222,128,.15)');
+    arcEl.setAttribute('stroke-width','1');
+    arcEl.setAttribute('stroke-dasharray','3,3');
+    svg.insertBefore(arcEl, svg.firstChild);
+  });
+}
+
+// Build SVG arc path (ellipse arc from startAngle to endAngle)
+function buildArcPath(cx, cy, rx, ry, startA, endA){
+  var p1 = ellipsePoint(cx,cy,rx,ry,startA);
+  var p2 = ellipsePoint(cx,cy,rx,ry,endA);
+  var span = endA - startA;
+  var large = span > 180 ? 1 : 0;
+  return 'M '+p1.x.toFixed(1)+' '+p1.y.toFixed(1)+
+         ' A '+rx.toFixed(1)+' '+ry.toFixed(1)+' 0 '+large+' 1 '+
+         p2.x.toFixed(1)+' '+p2.y.toFixed(1);
+}
+
+// =====================================================
+//  BUILD CONCERT (amphitheater arc rows)
+// =====================================================
+function buildConcert(){
+  var mapArea = document.getElementById('mapArea');
+  mapArea.innerHTML = '';
+
+  var hdr = document.createElement('div');
+  hdr.className = 'venue-title-block';
+  hdr.innerHTML = '<h2>DY Patil Stadium — Floor &amp; Stands</h2><p>Amphitheater layout · rows A–P arc toward the stage</p>';
+  mapArea.appendChild(hdr);
+
+  /* Stage element */
+  var sw = document.createElement('div');
+  sw.innerHTML = '<div class="stage-el"><svg width="13" height="13" viewBox="0 0 13 13" fill="none" style="margin-right:6px"><path d="M1.5 10.5V5.5L6.5 2.5 11.5 5.5v5" stroke="#78716C" stroke-width="1.3" stroke-linejoin="round"/><path d="M4.5 10.5V8h4v2.5" stroke="#78716C" stroke-width="1.3" stroke-linejoin="round"/></svg>STAGE</div><div class="stage-curve-el"></div>';
+  mapArea.appendChild(sw);
+
+  mapArea.appendChild(buildLegend('concert'));
+
+  var wrap = document.createElement('div');
+  wrap.id = 'concertSvgWrap';
+  mapArea.appendChild(wrap);
+
+  /* Concert rows config */
+  var concertRows = [
+    {id:'A', seats:12, zone:'vip'},
+    {id:'B', seats:14, zone:'vip'},
+    {id:'C', seats:16, zone:'premium'},
+    {id:'D', seats:16, zone:'premium'},
+    {id:'E', seats:18, zone:'premium'},
+    {id:'F', seats:18, zone:'standard'},
+    {id:'G', seats:20, zone:'standard'},
+    {id:'H', seats:20, zone:'standard'},
+    {id:'I', seats:20, zone:'standard'},
+    {id:'J', seats:22, zone:'standard'},
+    {id:'K', seats:22, zone:'economy'},
+    {id:'L', seats:24, zone:'economy'},
+    {id:'M', seats:24, zone:'economy'},
+    {id:'N', seats:26, zone:'economy'},
+    {id:'O', seats:26, zone:'economy'},
+    {id:'P', seats:28, zone:'economy'},
+  ];
+
+  // SVG dimensions
+  var maxSeats  = 28;
+  var seatW     = 14, seatH = 11, seatGap = 4, aisleW = 18;
+  var rowH      = 20;
+  var rowLblW   = 22;
+  var W = rowLblW*2 + maxSeats * (seatW + seatGap) + aisleW + 20;
+  var H = concertRows.length * rowH + 20;
+
+  var svg = makeSVG(W, H);
+  svg.id = 'concertSvg';
+  wrap.appendChild(svg);
+
+  var seatIndex = 300; // offset from sports reserved seed
+  var cx = W / 2;
+
+  concertRows.forEach(function(row, ri){
+    var y = ri * rowH + 14;
+    var n = row.seats;
+    var totalW = n * (seatW + seatGap) - seatGap + aisleW;
+    var startX = cx - totalW / 2;
+
+    // Arc bow: front rows bow slightly using translateY per seat
+    var arcDepth = Math.max(0, (7 - ri) * 1.8);
+
+    // Row label left
+    var tl = addSvgText(svg, startX - 8, y + seatH/2, row.id, 8, '#A8A29E', '600', 'end');
+
+    var mid = n / 2;
+    var x = startX;
+
+    for(var s = 1; s <= n; s++){
+      // Aisle in middle
+      if(s === Math.ceil(n/2) + 1) x += aisleW;
+
+      // Arc bow (parabola across the row)
+      var t = (s - 0.5) / n;
+      var bow = arcDepth * (1 - Math.pow(2*t - 1, 2));
+      var sy = y - bow;
+
+      var key = 'C-' + row.id + '-' + s;
+      var reserved = isRes(seatIndex++);
+
+      var rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+      rect.setAttribute('x', x.toFixed(1));
+      rect.setAttribute('y', (sy - seatH/2).toFixed(1));
+      rect.setAttribute('width', seatW);
+      rect.setAttribute('height', seatH);
+      rect.setAttribute('rx', 2.5);
+      rect.setAttribute('class','cs-seat '+(reserved?'res':'avail'));
+      rect.setAttribute('data-key',  key);
+      rect.setAttribute('data-row',  'Row '+row.id);
+      rect.setAttribute('data-col',  s);
+      rect.setAttribute('data-zone', row.zone);
+      rect.setAttribute('data-price',PRICES[row.zone]);
+      rect.setAttribute('data-lbl',  'Row '+row.id+' · Seat '+s);
+
+      if(!reserved){
+        rect.addEventListener('click',   onSeatClick);
+        rect.addEventListener('mouseenter', onSeatEnter);
+        rect.addEventListener('mouseleave', onSeatLeave);
+      }
+
+      // Seat back nub
+      var nub = document.createElementNS('http://www.w3.org/2000/svg','rect');
+      nub.setAttribute('x', x.toFixed(1));
+      nub.setAttribute('y', (sy - seatH/2 - 2.5).toFixed(1));
+      nub.setAttribute('width', seatW);
+      nub.setAttribute('height', 2.5);
+      nub.setAttribute('rx', 1.5);
+      nub.setAttribute('fill', reserved ? '#FECACA' : '#CBD5E1');
+      nub.setAttribute('opacity', '.55');
+      nub.setAttribute('pointer-events','none');
+      svg.appendChild(nub);
+      svg.appendChild(rect);
+
+      x += seatW + seatGap;
+    }
+
+    // Row label right
+    addSvgText(svg, x + 2, y + seatH/2, row.id, 8, '#A8A29E', '600', 'start');
+
+    // Zone color stripe on left edge
+    var zoneColors2 = {vip:'#FDE047', premium:'#818CF8', standard:'#6366F1', economy:'#CBD5E1'};
+    var stripe = document.createElementNS('http://www.w3.org/2000/svg','rect');
+    stripe.setAttribute('x', startX - 14);
+    stripe.setAttribute('y', y - seatH/2);
+    stripe.setAttribute('width', 3);
+    stripe.setAttribute('height', seatH);
+    stripe.setAttribute('rx', 1.5);
+    stripe.setAttribute('fill', zoneColors2[row.zone] || '#CBD5E1');
+    stripe.setAttribute('opacity', '.7');
+    svg.appendChild(stripe);
+  });
+
+  // Section divider lines + zone labels
+  var zoneDividers = [{after:1, label:'VIP · ₹9,999', zone:'vip'},{after:4, label:'Premium · ₹4,999', zone:'premium'},{after:9, label:'Standard · ₹2,499', zone:'standard'}];
+  zoneDividers.forEach(function(d){
+    var y = d.after * rowH + 14 + seatH/2 + 4;
+    var line = document.createElementNS('http://www.w3.org/2000/svg','line');
+    line.setAttribute('x1', 0); line.setAttribute('x2', W);
+    line.setAttribute('y1', y); line.setAttribute('y2', y);
+    line.setAttribute('stroke','#E7E5E4'); line.setAttribute('stroke-width','.8');
+    line.setAttribute('stroke-dasharray','4,4');
+    svg.appendChild(line);
+  });
+}
+
+// =====================================================
+//  SVG UTILITIES
+// =====================================================
+function makeSVG(w,h){
+  var s = document.createElementNS('http://www.w3.org/2000/svg','svg');
+  s.setAttribute('width',w); s.setAttribute('height',h);
+  s.setAttribute('viewBox','0 0 '+w+' '+h);
+  return s;
+}
+function addEllipse(svg,cx,cy,rx,ry,cls){
+  var e = document.createElementNS('http://www.w3.org/2000/svg','ellipse');
+  e.setAttribute('cx',cx); e.setAttribute('cy',cy);
+  e.setAttribute('rx',rx); e.setAttribute('ry',ry);
+  e.setAttribute('class',cls);
+  svg.appendChild(e); return e;
+}
+function addText(svg,x,y,txt,fs,fill,bold){
+  var t = document.createElementNS('http://www.w3.org/2000/svg','text');
+  t.setAttribute('x',x); t.setAttribute('y',y);
+  t.setAttribute('text-anchor','middle'); t.setAttribute('dominant-baseline','middle');
+  t.setAttribute('font-size',fs); t.setAttribute('fill',fill);
+  if(bold) t.setAttribute('font-weight','700');
+  t.setAttribute('letter-spacing','.1em');
+  t.textContent = txt; svg.appendChild(t); return t;
+}
+function addSvgText(svg,x,y,txt,fs,fill,fw,anchor){
+  var t = document.createElementNS('http://www.w3.org/2000/svg','text');
+  t.setAttribute('x',x); t.setAttribute('y',y);
+  t.setAttribute('text-anchor',anchor||'middle');
+  t.setAttribute('dominant-baseline','middle');
+  t.setAttribute('font-size',fs); t.setAttribute('fill',fill);
+  t.setAttribute('font-weight',fw||'400');
+  t.textContent = txt; svg.appendChild(t); return t;
+}
+function addLine(svg,x1,y1,x2,y2,stroke,sw,op){
+  var l = document.createElementNS('http://www.w3.org/2000/svg','line');
+  l.setAttribute('x1',x1); l.setAttribute('y1',y1);
+  l.setAttribute('x2',x2); l.setAttribute('y2',y2);
+  l.setAttribute('stroke',stroke); l.setAttribute('stroke-width',sw||1);
+  if(op) l.setAttribute('opacity',op);
+  svg.appendChild(l);
+}
+
+// =====================================================
+//  LEGEND BUILDER
+// =====================================================
+function buildLegend(m){
+  var d = document.createElement('div');
+  d.className = 'legend';
+  var zones = m === 'sports'
+    ? [{cls:'zp-corp',lbl:'Corporate Box · ₹12,000'},{cls:'zp-prem',lbl:'Premium Stand · ₹5,000'},{cls:'zp-gen',lbl:'General Stand · ₹1,500'}]
+    : [{cls:'zp-vip',lbl:'VIP · ₹9,999'},{cls:'zp-prem',lbl:'Premium · ₹4,999'},{cls:'zp-std',lbl:'Standard · ₹2,499'},{cls:'zp-eco',lbl:'Economy · ₹1,499'}];
+
+  d.innerHTML =
+    '<div class="leg-item"><div class="leg-swatch ls-avail"></div>Available</div>'+
+    '<div class="leg-item"><div class="leg-swatch ls-sel"></div>Selected</div>'+
+    '<div class="leg-item"><div class="leg-swatch ls-res"></div>Reserved</div>'+
+    '<div class="leg-sep"></div>'+
+    zones.map(function(z){ return '<div class="leg-item"><span class="zone-pill '+z.cls+'">'+z.cls.replace('zp-','').toUpperCase()+'</span> '+z.lbl+'</div>'; }).join('');
+  return d;
+}
+
+// =====================================================
+//  SEAT INTERACTIONS
+// =====================================================
+function onSeatClick(e){
+  var el   = e.currentTarget;
+  var key  = el.getAttribute('data-key');
+  var row  = el.getAttribute('data-row');
+  var col  = el.getAttribute('data-col');
+  var zone = el.getAttribute('data-zone');
+  var price= parseInt(el.getAttribute('data-price'));
+  var lbl  = el.getAttribute('data-lbl');
+
+  if(el.classList.contains('sel')){
+    el.classList.remove('sel'); el.classList.add('avail');
+    delete selected[key];
+    showToast('Seat removed','✕');
+  } else {
+    el.classList.remove('avail'); el.classList.add('sel');
+    selected[key]={key,row,col,zone,price,label:lbl};
+    showToast(lbl+' · ₹'+price.toLocaleString('en-IN'),'✓');
+  }
+  refreshSidebar();
+}
+
+function onSeatEnter(e){
+  var el = e.currentTarget;
+  if(el.classList.contains('res')) return;
+  var lbl = el.getAttribute('data-lbl');
+  var price = parseInt(el.getAttribute('data-price'));
+  var zone  = el.getAttribute('data-zone');
+  var isSel = el.classList.contains('sel');
+  var tip = document.getElementById('tip');
+  tip.textContent = (isSel?'✓ ':'') + lbl + '  ·  ' + ZONENAME[zone] + '  ·  ₹' + price.toLocaleString('en-IN');
+  tip.classList.add('on');
+  positionTip(e);
+}
+function onSeatLeave(){ document.getElementById('tip').classList.remove('on'); }
+function positionTip(e){
+  var tip = document.getElementById('tip');
+  var x = e.clientX, y = e.clientY;
+  var tw = tip.offsetWidth || 200;
+  var left = Math.min(x - tw/2, window.innerWidth - tw - 10);
+  tip.style.left = Math.max(10, left) + 'px';
+  tip.style.top  = (y - 38) + 'px';
+}
+document.addEventListener('mousemove', function(e){
+  var tip = document.getElementById('tip');
+  if(tip.classList.contains('on')) positionTip(e);
+});
+
+// =====================================================
+//  SIDEBAR REFRESH
+// =====================================================
+function refreshSidebar(){
+  var keys = Object.keys(selected);
+  var n = keys.length;
+  var sub = 0; keys.forEach(function(k){ sub += selected[k].price; });
+  var fee = Math.round(sub * 0.05);
+  var tot = sub + fee;
+
+  document.getElementById('sbSub').textContent  = n ? n+' seat'+(n>1?'s':'')+' selected' : 'No seats selected';
+  document.getElementById('sbSub2').textContent = '₹'+sub.toLocaleString('en-IN');
+  document.getElementById('sbFee').textContent  = '₹'+fee.toLocaleString('en-IN');
+  document.getElementById('sbTotal').textContent= '₹'+tot.toLocaleString('en-IN');
+
+  var emptyEl = document.getElementById('sbEmpty');
+  var listEl  = document.getElementById('sbList');
+
+  if(!n){ emptyEl.style.display='flex'; listEl.style.display='none'; }
+  else {
+    emptyEl.style.display='none'; listEl.style.display='block';
+    listEl.innerHTML = keys.map(function(k){
+      var s = selected[k];
+      return '<div class="sb-item">'+
+        '<div class="sb-item-left">'+
+          '<div class="sb-dot"></div>'+
+          '<div>'+
+            '<div class="sb-lbl">'+s.label+'</div>'+
+            '<div class="sb-tier"><span class="zone-pill '+ZONECLASS[s.zone]+'">'+ZONENAME[s.zone]+'</span></div>'+
+          '</div>'+
+        '</div>'+
+        '<div style="display:flex;align-items:center;gap:4px">'+
+          '<div class="sb-price">₹'+s.price.toLocaleString('en-IN')+'</div>'+
+          '<button class="sb-rm" onclick="removeSeat(\''+k+'\')" title="Remove">×</button>'+
+        '</div>'+
+      '</div>';
+    }).join('');
+  }
+
+  document.getElementById('btnPay').disabled = !n;
+  document.getElementById('mobBtn').disabled = !n;
+  document.getElementById('mobSeats').textContent = n+' seat'+(n!==1?'s':'')+' selected';
+  document.getElementById('mobPrice').textContent = '₹'+tot.toLocaleString('en-IN');
+}
+
+function removeSeat(key){
+  var el = document.querySelector('[data-key="'+key+'"]');
+  if(el){ el.classList.remove('sel'); el.classList.add('avail'); }
+  delete selected[key];
+  refreshSidebar();
+}
+
+function clearAll(){
+  Object.keys(selected).forEach(function(k){
+    var el = document.querySelector('[data-key="'+k+'"]');
+    if(el){ el.classList.remove('sel'); el.classList.add('avail'); }
+  });
+  selected = {};
+  refreshSidebar();
+  showToast('Selection cleared','🧹');
+}
+
+function doPay(){
+  var n = Object.keys(selected).length;
+  if(!n) return;
+  showToast('Redirecting to payment… '+n+' seat'+(n>1?'s':''),'💳');
+}
+
+// =====================================================
+//  MODE SWITCH
+// =====================================================
+function setMode(m){
+  mode = m;
+  clearAll();
+  document.getElementById('btnConcert').classList.toggle('act', m==='concert');
+  document.getElementById('btnSports').classList.toggle('act', m==='sports');
+  if(m==='sports'){
+    document.getElementById('navName').textContent  = 'India vs Australia · 1st Test';
+    document.getElementById('navVenue').textContent = 'Wankhede Stadium, Mumbai';
+    document.getElementById('navDate').textContent  = 'Fri, Nov 7, 2025';
+    buildSports();
+  } else {
+    document.getElementById('navName').textContent  = 'Arijit Singh — Aashiqui Tour';
+    document.getElementById('navVenue').textContent = 'DY Patil Stadium, Mumbai';
+    document.getElementById('navDate').textContent  = 'Sat, Aug 2, 2025';
+    buildConcert();
+  }
+  showToast(m==='sports'? 'Cricket stadium loaded':'Concert amphitheater loaded', m==='sports'?'🏏':'🎤');
+}
+
+// =====================================================
+//  TOAST
+// =====================================================
+var _tt;
+function showToast(msg, ico){
+  clearTimeout(_tt);
+  document.getElementById('tTxt').textContent = msg;
+  document.getElementById('tIco').textContent = ico ? ico+'  ' : '';
+  var t = document.getElementById('toast');
+  t.classList.add('on');
+  _tt = setTimeout(function(){ t.classList.remove('on'); }, 2200);
+}
+
+// =====================================================
+//  INIT
+// =====================================================
+document.addEventListener('DOMContentLoaded', function(){
+  buildSports();
+  refreshSidebar();
+});
+</script>
+</body>
+</html>

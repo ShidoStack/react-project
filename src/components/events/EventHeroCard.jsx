@@ -10,7 +10,7 @@ export default function EventHeroCard({ event, wide = false }) {
       <div className="absolute inset-0 bg-gradient-to-t from-black via-black/45 to-transparent" />
       <div className="relative flex h-full min-h-[360px] flex-col justify-end p-6 md:p-8">
         <div className="mb-4 flex items-center gap-2">
-          <span className="rounded-sm bg-[#3730a3] px-2 py-1 text-[11px] font-bold">{event.category}</span>
+          <span className="rounded-sm bg-brand-indigo px-2 py-1 text-[11px] font-bold">{event.category}</span>
           {event.badge && <span className="text-xs font-semibold">{event.badge}</span>}
         </div>
         <h2 className="max-w-xl text-3xl font-extrabold tracking-tight md:text-4xl">{event.title}</h2>

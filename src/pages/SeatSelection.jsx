@@ -1,124 +1,156 @@
-import { useMemo, useState } from 'react';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
-import Card from '../components/common/Card.jsx';
-import Icon from '../components/common/Icon.jsx';
+import { useState, useEffect } from 'react';
+import { Link, useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { getEventDetail } from '../data/eventDetails.js';
-
-function parsePrice(price) {
-  return Number(String(price).replace(/[^\d]/g, '')) || 0;
-}
+import EventSummary from '../components/seat-selection/EventSummary.jsx';
+import SeatMap from '../components/seat-selection/SeatMap.jsx';
+import BookingSidebar from '../components/seat-selection/BookingSidebar.jsx';
+import Icon from '../components/common/Icon.jsx';
+import EmptyState from '../components/common/EmptyState.jsx';
 
 export default function SeatSelection() {
   const { slug } = useParams();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const event = getEventDetail(slug);
-  const initialTier = searchParams.get('tier');
-  const [selectedTier, setSelectedTier] = useState(initialTier || event?.ticketTiers?.[0]?.name || '');
-  const [selectedSeats, setSelectedSeats] = useState(['A12', 'A13']);
 
-  const tier = event?.ticketTiers.find((item) => item.name === selectedTier) ?? event?.ticketTiers[0];
-  const seatRows = ['A', 'B', 'C', 'D'];
-  const total = useMemo(() => parsePrice(tier?.price) * selectedSeats.length, [selectedSeats.length, tier?.price]);
+  const [selectedSeats, setSelectedSeats] = useState([]);
+  const [toast, setToast] = useState({ message: '', icon: '', visible: false });
+
+  // Handle preset selected tier from EventDetails page search parameters if any
+  const preSelectedTier = searchParams.get('tier');
+
+  // Trigger brief toast alerts
+  const showToast = (message, icon) => {
+    setToast({ message, icon, visible: true });
+  };
+
+  useEffect(() => {
+    if (toast.visible) {
+      const timer = setTimeout(() => {
+        setToast((prev) => ({ ...prev, visible: false }));
+      }, 2200);
+      return () => clearTimeout(timer);
+    }
+  }, [toast.visible]);
 
   if (!event) {
     return (
-      <main className="px-5 pb-24 pt-40 md:px-10">
-        <div className="mx-auto max-w-[760px] rounded-2xl border border-gray-200 bg-white p-10 text-center">
-          <h1 className="text-4xl font-extrabold tracking-tight text-[#1a1c1d]">Event not found</h1>
-          <Link to="/events" className="btn-primary mt-8 inline-flex rounded-xl px-6 py-3 text-sm font-bold">Explore Events</Link>
-        </div>
+      <main className="px-5 pb-24 pt-40 md:px-10 min-h-[60vh]">
+        <EmptyState 
+          icon="event_busy"
+          title="Event Not Found"
+          message="The event you are looking for does not exist or has expired."
+          actionLabel="Explore Events"
+          onAction={() => window.location.href = '/events'}
+        />
       </main>
     );
   }
 
-  const toggleSeat = (seat) => {
-    setSelectedSeats((current) => (current.includes(seat) ? current.filter((item) => item !== seat) : [...current, seat]));
+  // Toggle seat selection
+  const handleSeatToggle = (seat) => {
+    setSelectedSeats((current) => {
+      const exists = current.some((s) => s.key === seat.key);
+      if (exists) {
+        showToast('Seat removed from selection', 'close');
+        return current.filter((s) => s.key !== seat.key);
+      } else {
+        showToast(`${seat.label.split('·')[1]?.trim() || seat.label} selected`, 'check');
+        return [...current, seat];
+      }
+    });
   };
 
+  // Remove a specific seat by key
+  const handleRemoveSeat = (key) => {
+    setSelectedSeats((current) => current.filter((s) => s.key !== key));
+    showToast('Seat removed', 'close');
+  };
+
+  // Clear all selections
+  const handleClearAll = () => {
+    setSelectedSeats([]);
+    showToast('All selections cleared', 'delete_sweep');
+  };
+
+  // Proceed to Checkout/Payment page
+  const handleProceed = () => {
+    if (selectedSeats.length === 0) return;
+    navigate(`/events/${slug}/checkout`, {
+      state: {
+        selectedSeats,
+        event,
+      },
+    });
+  };
+
+  const grandTotal = selectedSeats.reduce((acc, s) => acc + s.price, 0);
+  const serviceFee = Math.round(grandTotal * 0.05);
+  const taxes = Math.round(grandTotal * 0.18);
+  const totalPayable = grandTotal + serviceFee + taxes;
+
   return (
-    <main className="px-5 pb-20 pt-32 md:px-10">
-      <div className="mx-auto max-w-[1280px]">
-        <Link to={`/events/${event.slug}`} className="inline-flex items-center gap-2 text-sm font-bold text-[#464555] transition hover:text-[#3730a3]">
-          <Icon name="arrow_back" style={{ fontSize: 18 }} /> Back to event details
-        </Link>
-        <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_380px]">
-          <section>
-            <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-[#4f46e5]">Seat Selection</p>
-            <h1 className="mt-4 text-5xl font-extrabold tracking-tight text-[#1a1c1d]">{event.title}</h1>
-            <p className="mt-3 text-[#464555]">{event.shortDate} · {event.venue}, {event.city}</p>
+    <div className="min-h-screen pt-16 pb-24 lg:pb-0">
+      {/* Event Header Summary Info */}
+      <EventSummary event={event} />
 
-            <Card className="mt-10 rounded-3xl p-6">
-              <div className="rounded-2xl border border-gray-200 bg-[#f9f9fa] p-6 text-center">
-                <div className="mx-auto h-10 max-w-xl rounded-t-full bg-[#1a1c1d] text-xs font-extrabold uppercase tracking-[0.2em] text-white flex items-center justify-center">
-                  Stage
-                </div>
-                <div className="mt-10 grid gap-4">
-                  {seatRows.map((row) => (
-                    <div key={row} className="flex items-center justify-center gap-3">
-                      <span className="w-6 text-sm font-extrabold text-[#777587]">{row}</span>
-                      {Array.from({ length: 12 }, (_, index) => {
-                        const seat = `${row}${index + 1}`;
-                        const selected = selectedSeats.includes(seat);
-                        const blocked = row === 'D' && index > 7;
-                        return (
-                          <button
-                            key={seat}
-                            type="button"
-                            disabled={blocked}
-                            onClick={() => toggleSeat(seat)}
-                            className={`h-9 w-9 rounded-lg border text-xs font-bold transition ${
-                              selected
-                                ? 'border-[#4f46e5] bg-[#4f46e5] text-white'
-                                : blocked
-                                  ? 'cursor-not-allowed border-gray-200 bg-gray-200 text-gray-400'
-                                  : 'border-gray-200 bg-white text-[#464555] hover:border-[#4f46e5] hover:text-[#4f46e5]'
-                            }`}
-                            aria-label={`${selected ? 'Deselect' : 'Select'} seat ${seat}`}
-                          >
-                            {index + 1}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-8 flex flex-wrap justify-center gap-4 text-xs font-bold text-[#777587]">
-                  <span className="inline-flex items-center gap-2"><span className="h-3 w-3 rounded bg-white border border-gray-200" /> Available</span>
-                  <span className="inline-flex items-center gap-2"><span className="h-3 w-3 rounded bg-[#4f46e5]" /> Selected</span>
-                  <span className="inline-flex items-center gap-2"><span className="h-3 w-3 rounded bg-gray-200" /> Unavailable</span>
-                </div>
-              </div>
-            </Card>
-          </section>
+      <div className="mx-auto max-w-[1280px] px-5 py-8 md:px-10">
+        {/* Main Grid: 70% Map, 30% Sidebar */}
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
+          {/* Seat Map Area */}
+          <div className="lg:col-span-8 flex flex-col items-center">
+            <SeatMap
+              event={event}
+              selectedSeats={selectedSeats}
+              onSeatToggle={handleSeatToggle}
+            />
+          </div>
 
-          <aside className="lg:sticky lg:top-28 lg:self-start">
-            <Card className="rounded-3xl p-6">
-              <h2 className="text-2xl font-extrabold text-[#1a1c1d]">Booking Summary</h2>
-              <label className="mt-6 block">
-                <span className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#777587]">Ticket tier</span>
-                <select value={selectedTier} onChange={(event) => setSelectedTier(event.target.value)} className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-bold outline-none focus:border-[#4f46e5]">
-                  {event.ticketTiers.map((item) => (
-                    <option key={item.name}>{item.name}</option>
-                  ))}
-                </select>
-              </label>
-              <div className="mt-6 rounded-2xl border border-gray-200 bg-[#f9f9fa] p-4">
-                <p className="text-sm font-bold text-[#464555]">Selected seats</p>
-                <p className="mt-2 text-xl font-extrabold text-[#1a1c1d]">{selectedSeats.length ? selectedSeats.join(', ') : 'None'}</p>
-              </div>
-              <dl className="mt-6 grid gap-3 border-t border-gray-200 pt-6 text-sm">
-                <div className="flex justify-between"><dt className="text-[#777587]">Ticket price</dt><dd className="font-bold text-[#1a1c1d]">{tier?.price}</dd></div>
-                <div className="flex justify-between"><dt className="text-[#777587]">Quantity</dt><dd className="font-bold text-[#1a1c1d]">{selectedSeats.length}</dd></div>
-                <div className="flex justify-between text-lg"><dt className="font-extrabold text-[#1a1c1d]">Total</dt><dd className="font-extrabold text-[#1a1c1d]">₹{total.toLocaleString('en-IN')}</dd></div>
-              </dl>
-              <button type="button" disabled={!selectedSeats.length} className="mt-6 w-full rounded-xl bg-[#4f46e5] px-5 py-4 text-base font-extrabold text-white transition hover:bg-[#3730a3] disabled:cursor-not-allowed disabled:bg-gray-300">
-                Proceed to Payment
-              </button>
-              <p className="mt-3 text-center text-xs font-semibold text-[#777587]">Secure checkout · Instant digital delivery</p>
-            </Card>
-          </aside>
+          {/* Sticky Booking Sidebar (Large Screens) */}
+          <div className="hidden lg:block lg:col-span-4 lg:sticky lg:top-24 lg:h-[calc(100vh-120px)] lg:self-start">
+            <div className="h-full rounded-3xl border border-gray-200 overflow-hidden shadow-sm">
+              <BookingSidebar
+                selectedSeats={selectedSeats}
+                onRemoveSeat={handleRemoveSeat}
+                onClearAll={handleClearAll}
+                onProceed={handleProceed}
+              />
+            </div>
+          </div>
         </div>
       </div>
-    </main>
+
+      {/* Mobile Bottom Payment Bar */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200 bg-white/95 backdrop-filter backdrop-blur-md px-5 py-4 shadow-lg lg:hidden">
+        <div className="mx-auto flex max-w-lg items-center justify-between gap-4">
+          <div>
+            <p className="text-[10px] font-extrabold uppercase tracking-wider text-gray-400">
+              {selectedSeats.length} seat{selectedSeats.length !== 1 ? 's' : ''} selected
+            </p>
+            <p className="text-xl font-black text-brand-indigo tracking-tight">
+              ₹{totalPayable.toLocaleString('en-IN')}
+            </p>
+          </div>
+          <button
+            onClick={handleProceed}
+            disabled={selectedSeats.length === 0}
+            className="flex items-center gap-1.5 rounded-xl bg-brand-indigo px-6 py-3 text-xs font-bold text-white shadow-md transition hover:bg-[#312e81] disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-400 disabled:shadow-none"
+          >
+            <Icon name="credit_card" style={{ fontSize: 16 }} />
+            Book Now
+          </button>
+        </div>
+      </div>
+
+      {/* Custom Floating Toast Alert */}
+      {toast.visible && (
+        <div className="fixed bottom-24 left-1/2 z-50 -translate-x-1/2 transform rounded-2xl bg-[#0a0a0a] text-white px-5 py-3.5 text-xs font-bold shadow-2xl flex items-center gap-2.5 border border-white/10 opacity-95 transition duration-300">
+          <span className="grid h-5 w-5 place-items-center rounded-full bg-indigo-500/20 text-indigo-400">
+            <Icon name={toast.icon} style={{ fontSize: 14 }} />
+          </span>
+          {toast.message}
+        </div>
+      )}
+    </div>
   );
 }

@@ -44,10 +44,10 @@ export default function InfiniteRail({ title, items, renderItem, ariaLabel }) {
   };
 
   return (
-    <section className="border-y border-gray-200 bg-[#f3f3f4] py-12">
+    <section className="border-y border-gray-200 py-12">
       <div className="mx-auto mb-6 flex max-w-[1280px] items-center justify-between px-5 md:px-10">
-        <h2 className="text-xl font-extrabold tracking-tight text-[#1a1c1d]">{title}</h2>
-        <span className="hidden text-xs font-semibold text-[#464555] sm:block">Drag or scroll horizontally</span>
+        <h2 className="text-xl font-extrabold tracking-tight text-on-surface">{title}</h2>
+        <span className="hidden text-xs font-semibold text-on-surface-variant sm:block">Drag or scroll horizontally</span>
       </div>
       <div
         ref={scrollerRef}

@@ -2,7 +2,7 @@ export default function Button({ children, className = '', variant = 'primary', 
   const styles = {
     primary: 'btn-primary',
     secondary: 'btn-secondary',
-    subtle: 'rounded-lg border border-gray-200 bg-white text-[#1a1c1d] transition hover:border-[#3730a3] hover:text-[#3730a3]',
+    subtle: 'rounded-lg border border-gray-200 bg-white text-on-surface transition hover:border-brand-indigo hover:text-brand-indigo',
   };
 
   return (
