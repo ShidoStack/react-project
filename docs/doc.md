@@ -138,7 +138,7 @@ Users who:
 
 # 5. System Architecture Overview
 
-![System Architecture](./docs/architecture.png)
+![System Architecture](./architecture.png)
 
 MehfilX follows a component-driven React architecture where React Router manages navigation between application pages. Business data is provided through dedicated data modules and shared state management layers. The PixiJS rendering engine powers the interactive seat-selection experience, while the reservation layer manages seat holds and checkout synchronization. The workflow culminates in payment processing and ticket generation.
 
