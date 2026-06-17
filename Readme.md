@@ -376,7 +376,7 @@ src/
 ## Clone Repository
 
 ```bash
-git clone <repository-url>
+git clone <https://github.com/ShidoStack/react-project/>
 ```
 
 ## Navigate To Project
@@ -397,20 +397,10 @@ npm install
 npm run dev
 ```
 
-The application will be available at:
+The application is available at:
 
 ```text
-http://localhost:5173
-```
-
----
-
-# 🌐 Live Demo
-
-Coming Soon
-
-```text
-https://your-demo-link.com
+https://mehfilx.vercel.app/
 ```
 
 ---
