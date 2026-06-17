@@ -15,6 +15,7 @@ export default function SeatSelection() {
 
   const [selectedSeats, setSelectedSeats] = useState([]);
   const [toast, setToast] = useState({ message: '', icon: '', visible: false });
+  const [timeLeft, setTimeLeft] = useState(null);
 
   // Handle preset selected tier from EventDetails page search parameters if any
   const preSelectedTier = searchParams.get('tier');
@@ -26,12 +27,71 @@ export default function SeatSelection() {
 
   useEffect(() => {
     if (toast.visible) {
+      const duration = toast.message.includes('expired') ? 6000 : 2200;
       const timer = setTimeout(() => {
         setToast((prev) => ({ ...prev, visible: false }));
-      }, 2200);
+      }, duration);
       return () => clearTimeout(timer);
     }
-  }, [toast.visible]);
+  }, [toast.visible, toast.message]);
+
+  // Sync hold start timestamp with sessionStorage
+  useEffect(() => {
+    if (selectedSeats.length === 0) {
+      sessionStorage.removeItem('seatHoldStart');
+      setTimeLeft(null);
+      return;
+    }
+
+    const start = sessionStorage.getItem('seatHoldStart');
+    if (!start) {
+      sessionStorage.setItem('seatHoldStart', Date.now().toString());
+      setTimeLeft(180);
+    } else {
+      const elapsed = Math.floor((Date.now() - parseInt(start, 10)) / 1000);
+      setTimeLeft(Math.max(0, 180 - elapsed));
+    }
+  }, [selectedSeats]);
+
+  // Handle countdown interval
+  useEffect(() => {
+    if (timeLeft === null) return;
+
+    if (timeLeft <= 0) {
+      // Release held seats
+      setSelectedSeats([]);
+      sessionStorage.removeItem('seatHoldStart');
+      setTimeLeft(null);
+      showToast('Your seat reservation has expired', 'error_outline');
+      return;
+    }
+
+    const intervalId = setInterval(() => {
+      const start = sessionStorage.getItem('seatHoldStart');
+      if (start) {
+        const elapsed = Math.floor((Date.now() - parseInt(start, 10)) / 1000);
+        const remaining = Math.max(0, 180 - elapsed);
+        setTimeLeft(remaining);
+      }
+    }, 1000);
+
+    return () => clearInterval(intervalId);
+  }, [timeLeft]);
+
+  // Check if we navigated back due to expiration
+  useEffect(() => {
+    if (sessionStorage.getItem('holdExpired') === 'true') {
+      showToast('Your seat reservation has expired', 'error_outline');
+      sessionStorage.removeItem('holdExpired');
+    }
+  }, []);
+
+  const formatTime = (seconds) => {
+    if (seconds === null) return '';
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
 
   if (!event) {
     return (
@@ -114,6 +174,7 @@ export default function SeatSelection() {
                 onRemoveSeat={handleRemoveSeat}
                 onClearAll={handleClearAll}
                 onProceed={handleProceed}
+                timeLeft={formatTime(timeLeft)}
               />
             </div>
           </div>
@@ -124,8 +185,11 @@ export default function SeatSelection() {
       <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200 bg-white/95 backdrop-filter backdrop-blur-md px-5 py-4 shadow-lg lg:hidden">
         <div className="mx-auto flex max-w-lg items-center justify-between gap-4">
           <div>
-            <p className="text-[10px] font-extrabold uppercase tracking-wider text-gray-400">
+            <p className="text-[10px] font-extrabold uppercase tracking-wider text-gray-400 flex items-center gap-1">
               {selectedSeats.length} seat{selectedSeats.length !== 1 ? 's' : ''} selected
+              {selectedSeats.length > 0 && timeLeft !== null && (
+                <span className="text-amber-600 font-black">· Hold: {formatTime(timeLeft)}</span>
+              )}
             </p>
             <p className="text-xl font-black text-brand-indigo tracking-tight">
               ₹{totalPayable.toLocaleString('en-IN')}

@@ -25,7 +25,7 @@ export const ZONE_CLASSES = {
   accessible: 'zp-acc',
 };
 
-// Seeded pseudo-random generator for reserved seats
+// Seeded pseudo-random for reserved seats (deterministic)
 function hashString(str) {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
@@ -36,396 +36,333 @@ function hashString(str) {
 }
 
 export function isSeatReserved(seatKey) {
-  const hash = hashString(seatKey);
-  const rand = (hash % 100) / 100;
-  return rand < 0.25; // 25% of seats are reserved
+  return (hashString(seatKey) % 100) / 100 < 0.25;
 }
 
-// Polar to cartesian coordinates helper for curved stadium layouts
+// Polar → Cartesian. Convention: 0° = top/north, 90° = right/east.
 export function getEllipsePoint(cx, cy, rx, ry, angleDeg) {
-  const angleRad = ((angleDeg - 90) * Math.PI) / 180; // -90 offset so 0deg is top/North
-  return {
-    x: cx + rx * Math.cos(angleRad),
-    y: cy + ry * Math.sin(angleRad),
-  };
+  const rad = ((angleDeg - 90) * Math.PI) / 180;
+  return { x: cx + rx * Math.cos(rad), y: cy + ry * Math.sin(rad) };
 }
 
+// ─── CRICKET STADIUM ───────────────────────────────────────────────────────
+function generateCricketSeats(cx, cy, stands) {
+  const seats = [];
+  stands.forEach((stand) => {
+    for (let r = 0; r < stand.rows; r++) {
+      const rowNum = r + 1;
+      const rx     = stand.baseR + r * stand.rowGap;
+      const ry     = rx * 0.95; // Slight oval
+      const spanDeg =
+        stand.endA < stand.startA
+          ? stand.endA + 360 - stand.startA
+          : stand.endA - stand.startA;
+      const arcLen = ((rx + ry) / 2) * (spanDeg * Math.PI) / 180;
+      const cols   = Math.max(3, Math.floor(arcLen / stand.seatSpacing));
+
+      for (let c = 0; c < cols; c++) {
+        const t        = cols > 1 ? c / (cols - 1) : 0.5;
+        const angleDeg = stand.startA + t * spanDeg;
+        const pt       = getEllipsePoint(cx, cy, rx, ry, angleDeg);
+        const key      = `${stand.id}-R${rowNum}-S${c + 1}`;
+        seats.push({
+          key, row: rowNum, col: c + 1,
+          zone: stand.zone, price: SEAT_PRICES[stand.zone],
+          label: `${stand.label} · Row ${rowNum} Seat ${c + 1}`,
+          x: pt.x, y: pt.y, angle: angleDeg,
+          sectionId: stand.id, sectionLabel: stand.label,
+          isReserved: isSeatReserved(key),
+        });
+      }
+    }
+  });
+  return seats;
+}
+
+// ─── CONCERT / INDOOR ──────────────────────────────────────────────────────
+//
+// Arc centre is at cy=0 (at the very top of the canvas, behind the stage).
+// Curved seats at angles 124°→236° all land BELOW the stage — they face upward
+// toward the stage like a real horseshoe bowl.
+//
+//  Angle reference (0°=top, 90°=right, 180°=bottom, 270°=left):
+//   • Right bowl : 124°→158°   (lower-right of canvas)
+//   • Rear bowl  : 158°→202°   (bottom-centre of canvas)
+//   • Left bowl  : 202°→236°   (lower-left of canvas)
+//
+//  Flat floor sections (absolute y coordinates, not arc-relative):
+//   • VIP Pit     rows A–D  : y = 82–133
+//   • Premium Floor rows E–K: y = 154–262
+//
+function generateConcertSeats(cx, cy, sections) {
+  const seats = [];
+  const PITCH  = 17; // seatW(13) + seatGap(4)
+
+  // Helper — push one flat horizontal row of seats split by a centre aisle
+  function pushRow({ rowLabel, y, count, aisleW, zone, sectionId, sectionLabel }) {
+    const half   = count / 2;
+    const blockW = half * PITCH - 4;          // width of one block
+    const startX = cx - blockW - aisleW / 2;  // left edge of left block
+
+    for (let c = 0; c < count; c++) {
+      const isRight    = c >= half;
+      const posInBlock = isRight ? c - half : c;
+      const x = isRight
+        ? cx + aisleW / 2 + posInBlock * PITCH + 6.5
+        : startX + posInBlock * PITCH + 6.5;
+      const key = `${sectionId}-${rowLabel}-${c + 1}`;
+      seats.push({
+        key, row: rowLabel, col: c + 1,
+        zone, price: SEAT_PRICES[zone],
+        label: `${sectionLabel} · Row ${rowLabel} Seat ${c + 1}`,
+        x, y, angle: 0,
+        sectionId, sectionLabel,
+        isReserved: isSeatReserved(key),
+      });
+    }
+  }
+
+  // ── VIP PIT — 4 rows × 16 seats ──
+  ['A', 'B', 'C', 'D'].forEach((row, i) =>
+    pushRow({ rowLabel: row, y: 82 + i * 17, count: 16, aisleW: 22,
+              zone: 'vip', sectionId: 'VIP_FLOOR', sectionLabel: 'VIP Pit' })
+  );
+
+  // ── PREMIUM FLOOR — 7 rows × 24 seats ──
+  ['E', 'F', 'G', 'H', 'I', 'J', 'K'].forEach((row, i) =>
+    pushRow({ rowLabel: row, y: 154 + i * 17, count: 24, aisleW: 22,
+              zone: 'premium', sectionId: 'PREM_FLOOR', sectionLabel: 'Premium Floor' })
+  );
+
+  // ── ACCESSIBLE — 4 seats flanking first Premium row ──
+  [{ x: 200, y: 154 }, { x: 217, y: 154 }, { x: 683, y: 154 }, { x: 700, y: 154 }]
+    .forEach(({ x, y }, idx) => {
+      const key = `ACC-${idx + 1}`;
+      seats.push({
+        key, row: 'E', col: idx + 1,
+        zone: 'accessible', price: SEAT_PRICES.accessible,
+        label: `Accessible · Seat ${idx + 1}`,
+        x, y, angle: 0,
+        sectionId: 'ACC_FLOOR', sectionLabel: 'Accessible',
+        isReserved: isSeatReserved(key),
+      });
+    });
+
+  // ── CURVED BOWL STANDS — iterate only sections that have arc data ──
+  sections
+    .filter((s) => s.startA !== undefined)
+    .forEach((stand) => {
+      for (let r = 0; r < stand.rows; r++) {
+        const rowNum  = r + 1;
+        const rx      = stand.baseR + r * stand.rowGap;
+        // Use circular arcs (ry = rx) — cy=0 is already off-canvas so no squish needed
+        const spanDeg = stand.endA - stand.startA;
+        const arcLen  = rx * (spanDeg * Math.PI) / 180;
+        const cols    = Math.max(3, Math.floor(arcLen / stand.seatSpacing));
+
+        for (let c = 0; c < cols; c++) {
+          const t        = cols > 1 ? c / (cols - 1) : 0.5;
+          const angleDeg = stand.startA + t * spanDeg;
+          const pt       = getEllipsePoint(cx, cy, rx, rx, angleDeg);
+          const key      = `${stand.id}-R${rowNum}-S${c + 1}`;
+          seats.push({
+            key, row: rowNum, col: c + 1,
+            zone: stand.zone, price: SEAT_PRICES[stand.zone],
+            label: `${stand.label} · Row ${rowNum} Seat ${c + 1}`,
+            x: pt.x, y: pt.y, angle: angleDeg,
+            sectionId: stand.id, sectionLabel: stand.label,
+            isReserved: isSeatReserved(key),
+          });
+        }
+      }
+    });
+
+  return seats;
+}
+
+// ─── THEATRE ──────────────────────────────────────────────────────────────
+// Stage at bottom. Arc centre (cy=565) is below stage. Seats fan upward (north).
+function generateTheatreSeats(cx, cy, sections) {
+  const seats = [];
+  sections.forEach((sec) => {
+    for (let r = 0; r < sec.rows; r++) {
+      const rowNum    = r + 1;
+      const rowLetter = sec.rowStartLetter
+        ? String.fromCharCode(sec.rowStartLetter.charCodeAt(0) + r)
+        : `R${rowNum}`;
+      const rx      = sec.baseR + r * sec.rowGap;
+      const spanDeg = sec.endA < sec.startA
+        ? sec.endA + 360 - sec.startA
+        : sec.endA - sec.startA;
+      const arcLen  = rx * (spanDeg * Math.PI) / 180;
+      const cols    = Math.max(2, Math.floor(arcLen / sec.seatSpacing));
+
+      for (let c = 0; c < cols; c++) {
+        const t        = cols > 1 ? c / (cols - 1) : 0.5;
+        const angleDeg = sec.startA + t * spanDeg;
+        const pt       = getEllipsePoint(cx, cy, rx, rx, angleDeg);
+        const key      = `${sec.id}-${rowLetter}-${c + 1}`;
+        seats.push({
+          key, row: rowLetter, col: c + 1,
+          zone: sec.zone, price: SEAT_PRICES[sec.zone],
+          label: `${sec.label} · Row ${rowLetter} Seat ${c + 1}`,
+          x: pt.x, y: pt.y, angle: angleDeg,
+          sectionId: sec.id, sectionLabel: sec.label,
+          isReserved: isSeatReserved(key),
+        });
+      }
+    }
+  });
+  return seats;
+}
+
+// ─── CRICKET STANDS ───────────────────────────────────────────────────────
+const cricketStandsConfig = [
+  // Inner ring — VIP, Corporate, Premium (baseR 160)
+  { id: 'PAV',      label: 'Pavilion End (VIP)',     zone: 'vip',       startA: 165, endA: 195, baseR: 160, rows: 5, rowGap: 18, seatSpacing: 14 },
+  { id: 'CORP',     label: 'Corporate Suites L1',    zone: 'corporate', startA: 345, endA: 15,  baseR: 160, rows: 4, rowGap: 18, seatSpacing: 14 },
+  { id: 'ESTD_L',   label: 'East Stand Lower',       zone: 'premium',   startA: 15,  endA: 105, baseR: 160, rows: 5, rowGap: 18, seatSpacing: 14 },
+  { id: 'SSTD_L',   label: 'South Stand Lower',      zone: 'premium',   startA: 105, endA: 165, baseR: 160, rows: 5, rowGap: 18, seatSpacing: 14 },
+  { id: 'WSTD_L',   label: 'West Stand Lower',       zone: 'premium',   startA: 195, endA: 285, baseR: 160, rows: 5, rowGap: 18, seatSpacing: 14 },
+  { id: 'NSTD_L',   label: 'North Stand Lower',      zone: 'premium',   startA: 285, endA: 345, baseR: 160, rows: 5, rowGap: 18, seatSpacing: 14 },
+  { id: 'ACC',      label: 'Accessible Deck',        zone: 'accessible',startA: 98,  endA: 102, baseR: 150, rows: 1, rowGap: 18, seatSpacing: 18 },
+  // Outer ring — Standard, Economy, Corporate Upper (baseR 270)
+  { id: 'CORP_UPP', label: 'Presidential Suites L3', zone: 'corporate', startA: 345, endA: 15,  baseR: 270, rows: 4, rowGap: 18, seatSpacing: 13.5 },
+  { id: 'ESTD_U',   label: 'East Upper Tier',        zone: 'standard',  startA: 15,  endA: 105, baseR: 270, rows: 6, rowGap: 18, seatSpacing: 13.5 },
+  { id: 'WSTD_U',   label: 'West Upper Tier',        zone: 'standard',  startA: 195, endA: 285, baseR: 270, rows: 6, rowGap: 18, seatSpacing: 13.5 },
+  { id: 'NSTD_U',   label: 'North Upper Tier',       zone: 'economy',   startA: 285, endA: 345, baseR: 270, rows: 6, rowGap: 18, seatSpacing: 13.5 },
+  { id: 'SSTD_U',   label: 'South Upper Tier',       zone: 'economy',   startA: 105, endA: 165, baseR: 270, rows: 6, rowGap: 18, seatSpacing: 13.5 },
+];
+
+// ─── CONCERT SECTIONS ─────────────────────────────────────────────────────
+// Arc centre: cx=450, cy=0 (at top, above stage at stageY=25).
+// Angles 124°→236° place ALL curved seats below the stage, facing upward = facing the performer.
+//
+//  At cy=0 and baseR=380, angle 128°:
+//    x = 450 + 380·cos(38°) = 749   (right side, well outside flat floor x<660)
+//    y = 380·sin(38°)        = 234   (below Premium floor which ends at y≈262)
+//
+// Zone-only entries (no startA) are read by SeatLegend but draw no arc badge.
+const concertSectionsConfig = [
+  // ── Zone-info only (flat floor zones for legend) ──
+  { id: 'VIP_FLOOR',  label: 'VIP Pit',       zone: 'vip' },
+  { id: 'PREM_FLOOR', label: 'Premium Floor', zone: 'premium' },
+  { id: 'ACC_FLOOR',  label: 'Accessible',    zone: 'accessible' },
+
+  // ── Standard Lower Bowl — angles 128°→232°, baseR=380 ──
+  { id: 'R_LOW',    label: 'Right Stand (Lower)', zone: 'standard',
+    startA: 128, endA: 160, baseR: 380, rows: 4, rowGap: 16, seatSpacing: 14 },
+  { id: 'REAR_LOW', label: 'Rear Stand (Lower)',  zone: 'standard',
+    startA: 160, endA: 200, baseR: 380, rows: 4, rowGap: 16, seatSpacing: 14 },
+  { id: 'L_LOW',    label: 'Left Stand (Lower)',  zone: 'standard',
+    startA: 200, endA: 232, baseR: 380, rows: 4, rowGap: 16, seatSpacing: 14 },
+
+  // ── Economy Upper Bowl — angles 124°→236°, baseR=456 ──
+  { id: 'R_UPP',    label: 'Right Stand (Upper)', zone: 'economy',
+    startA: 124, endA: 160, baseR: 456, rows: 4, rowGap: 16, seatSpacing: 14 },
+  { id: 'REAR_UPP', label: 'Rear Stand (Upper)',  zone: 'economy',
+    startA: 160, endA: 200, baseR: 456, rows: 4, rowGap: 16, seatSpacing: 14 },
+  { id: 'L_UPP',    label: 'Left Stand (Upper)',  zone: 'economy',
+    startA: 200, endA: 236, baseR: 456, rows: 4, rowGap: 16, seatSpacing: 14 },
+];
+
+// ─── THEATRE SECTIONS ─────────────────────────────────────────────────────
+// Stage at bottom (stageY=530, cy=565). Seats fan upward.
+// 0° = directly up from cy. Fan from -66° (upper-left) → 66° (upper-right).
+// At angle 0° from cy=565: y = 565 - baseR (above centre = above stage). ✓
+const theatreSectionsConfig = [
+  // VIP — innermost arc, rows A–E
+  { id: 'VIP_L',  label: 'VIP Stalls (Left)',       zone: 'vip',       startA: -50, endA: -5, baseR: 100, rows: 5, rowGap: 18, seatSpacing: 14, rowStartLetter: 'A' },
+  { id: 'VIP_C',  label: 'VIP Stalls (Centre)',     zone: 'vip',       startA: -5, endA: 5, baseR: 100, rows: 5, rowGap: 18, seatSpacing: 14, rowStartLetter: 'A' },
+  { id: 'VIP_R',  label: 'VIP Stalls (Right)',      zone: 'vip',       startA: 5, endA: 50, baseR: 100, rows: 5, rowGap: 18, seatSpacing: 14, rowStartLetter: 'A' },
+  // Premium — rows F–K
+  { id: 'PREM_L', label: 'Premium Stalls (Left)',   zone: 'premium',   startA: -53, endA: -5, baseR: 210, rows: 6, rowGap: 18, seatSpacing: 14, rowStartLetter: 'F' },
+  { id: 'PREM_C', label: 'Premium Stalls (Centre)', zone: 'premium',   startA: -5, endA: 5, baseR: 210, rows: 6, rowGap: 18, seatSpacing: 14, rowStartLetter: 'F' },
+  { id: 'PREM_R', label: 'Premium Stalls (Right)',  zone: 'premium',   startA: 5, endA: 53, baseR: 210, rows: 6, rowGap: 18, seatSpacing: 14, rowStartLetter: 'F' },
+  // Standard — rows L–Q
+  { id: 'STD_L',  label: 'Standard Stalls (Left)',  zone: 'standard',  startA: -57, endA: -5, baseR: 330, rows: 6, rowGap: 18, seatSpacing: 14, rowStartLetter: 'L' },
+  { id: 'STD_C',  label: 'Standard Stalls (Centre)',zone: 'standard',  startA: -5, endA: 5, baseR: 330, rows: 6, rowGap: 18, seatSpacing: 14, rowStartLetter: 'L' },
+  { id: 'STD_R',  label: 'Standard Stalls (Right)', zone: 'standard',  startA: 5, endA: 57, baseR: 330, rows: 6, rowGap: 18, seatSpacing: 14, rowStartLetter: 'L' },
+  // Balcony — rows R–V
+  { id: 'BALC_L', label: 'Balcony (Left)',          zone: 'economy',   startA: -61, endA: -5, baseR: 450, rows: 5, rowGap: 18, seatSpacing: 13,  rowStartLetter: 'R' },
+  { id: 'BALC_C', label: 'Balcony (Centre)',        zone: 'economy',   startA: -5, endA: 5, baseR: 450, rows: 5, rowGap: 18, seatSpacing: 13,  rowStartLetter: 'R' },
+  { id: 'BALC_R', label: 'Balcony (Right)',         zone: 'economy',   startA: 5, endA: 61, baseR: 450, rows: 5, rowGap: 18, seatSpacing: 13,  rowStartLetter: 'R' },
+  // Accessible — front row centre
+  { id: 'ACC',    label: 'Accessible Front Row',    zone: 'accessible',startA: -7, endA: 7, baseR: 75,  rows: 1, rowGap: 18, seatSpacing: 18, rowStartLetter: 'W' },
+];
+
+// ─── SEAT LAYOUTS EXPORT ──────────────────────────────────────────────────
 export const seatLayouts = {
-  // CRICKET STADIUM LAYOUT
   cricket: {
     venueName: 'Wankhede Stadium',
-    width: 800,
-    height: 760,
-    cx: 400,
-    cy: 350,
-    pitch: {
-      cx: 400,
-      cy: 350,
-      rxOuter: 110,
-      ryOuter: 80,
-      rxInner: 55,
-      ryInner: 40,
-      label: 'CRICKET PITCH',
-    },
-    stands: [
-      {
-        id: 'PAV',
-        label: 'Pavilion End (VIP)',
-        zone: 'vip',
-        startA: 165,
-        endA: 195,
-        rows: 4,
-        baseRx: 135,
-        baseRy: 105,
-        rowGap: 16,
-      },
-      {
-        id: 'CORP',
-        label: 'Corporate Lounges',
-        zone: 'corporate',
-        startA: 345,
-        endA: 15,
-        rows: 3,
-        baseRx: 135,
-        baseRy: 105,
-        rowGap: 16,
-      },
-      {
-        id: 'NSTD',
-        label: 'North Stand',
-        zone: 'premium',
-        startA: 285,
-        endA: 345,
-        rows: 5,
-        baseRx: 145,
-        baseRy: 115,
-        rowGap: 16,
-      },
-      {
-        id: 'SSTD',
-        label: 'South Stand',
-        zone: 'premium',
-        startA: 105,
-        endA: 165,
-        rows: 5,
-        baseRx: 145,
-        baseRy: 115,
-        rowGap: 16,
-      },
-      {
-        id: 'ESTD',
-        label: 'East Stand',
-        zone: 'standard',
-        startA: 15,
-        endA: 105,
-        rows: 5,
-        baseRx: 155,
-        baseRy: 125,
-        rowGap: 16,
-      },
-      {
-        id: 'WSTD',
-        label: 'West Stand',
-        zone: 'standard',
-        startA: 195,
-        endA: 285,
-        rows: 5,
-        baseRx: 155,
-        baseRy: 125,
-        rowGap: 16,
-      },
-      // Outer Economy rings
-      {
-        id: 'EUPP',
-        label: 'East Upper (Economy)',
-        zone: 'economy',
-        startA: 15,
-        endA: 105,
-        rows: 4,
-        baseRx: 245,
-        baseRy: 215,
-        rowGap: 16,
-      },
-      {
-        id: 'WUPP',
-        label: 'West Upper (Economy)',
-        zone: 'economy',
-        startA: 195,
-        endA: 285,
-        rows: 4,
-        baseRx: 245,
-        baseRy: 215,
-        rowGap: 16,
-      },
-      // Dedicated Accessible Deck
-      {
-        id: 'ACC',
-        label: 'Accessible Deck',
-        zone: 'accessible',
-        startA: 98,
-        endA: 102,
-        rows: 1,
-        baseRx: 120,
-        baseRy: 90,
-        rowGap: 16,
-      },
-    ],
+    width: 1000, height: 1000,
+    cx: 500, cy: 500,
+    pitch: { cx: 500, cy: 500, rxOuter: 110, ryOuter: 92, rxInner: 55, ryInner: 46 },
+    stands: cricketStandsConfig,
+    seats: generateCricketSeats(500, 500, cricketStandsConfig),
   },
 
-  // CONCERT LAYOUT
   concert: {
-    venueName: 'DY Patil Stadium',
-    width: 800,
-    height: 620,
+    venueName: 'DY Patil Stadium Arena',
+    // Canvas dimensions. Curved seats reach y_max ≈ 456+3×16 = 504. Add margin → 560.
+    width: 900, height: 560,
+    cx: 450,
+    cy: 0,           // Arc centre at the very top — arcs fan downward (facing stage)
     hasStage: true,
     stageLabel: 'MAIN STAGE',
-    stageWidth: 320,
-    stageHeight: 40,
-    sections: [
-      {
-        id: 'VIP',
-        label: 'VIP Pit (Front)',
-        zone: 'vip',
-        rows: [
-          { label: 'A', count: 12 },
-          { label: 'B', count: 14 },
-          { label: 'C', count: 14 },
-        ],
-        yStart: 120,
-        yGap: 22,
-        aisleWidth: 16,
-      },
-      {
-        id: 'PREM',
-        label: 'Premium Floor',
-        zone: 'premium',
-        rows: [
-          { label: 'D', count: 16 },
-          { label: 'E', count: 16 },
-          { label: 'F', count: 18 },
-          { label: 'G', count: 18 },
-        ],
-        yStart: 210,
-        yGap: 22,
-        aisleWidth: 20,
-      },
-      {
-        id: 'STD',
-        label: 'Standard Seating',
-        zone: 'standard',
-        rows: [
-          { label: 'H', count: 20 },
-          { label: 'I', count: 20 },
-          { label: 'J', count: 22 },
-          { label: 'K', count: 22 },
-          { label: 'L', count: 24 },
-        ],
-        yStart: 320,
-        yGap: 22,
-        aisleWidth: 24,
-      },
-      {
-        id: 'ECO',
-        label: 'Economy Stand (Rear)',
-        zone: 'economy',
-        rows: [
-          { label: 'M', count: 24 },
-          { label: 'N', count: 26 },
-          { label: 'O', count: 26 },
-          { label: 'P', count: 28 },
-        ],
-        yStart: 450,
-        yGap: 22,
-        aisleWidth: 28,
-      },
-      {
-        id: 'ACC',
-        label: 'Accessible Deck',
-        zone: 'accessible',
-        rows: [
-          { label: 'ACC', count: 4 },
-        ],
-        yStart: 550,
-        yGap: 22,
-        aisleWidth: 0,
-      },
-    ],
+    stageWidth: 360, stageHeight: 40,
+    stageX: 270, stageY: 25,
+    // sections used by: SeatLegend (zone names) + SeatMap (arc badge labels)
+    sections: concertSectionsConfig,
+    seats: generateConcertSeats(450, 0, concertSectionsConfig),
   },
 
-  // THEATRE / COMEDY LAYOUT
   theatre: {
     venueName: 'The Royal Theatre',
-    width: 600,
-    height: 520,
+    width: 900, height: 660,
+    cx: 450, cy: 565,
     hasStage: true,
     stageLabel: 'THEATRE STAGE',
-    stageWidth: 240,
-    stageHeight: 30,
-    sections: [
-      {
-        id: 'VIP',
-        label: 'VIP Front Rows',
-        zone: 'vip',
-        rows: [
-          { label: 'A', count: 10 },
-          { label: 'B', count: 10 },
-        ],
-        yStart: 100,
-        yGap: 24,
-        aisleWidth: 16,
-      },
-      {
-        id: 'PREM',
-        label: 'Premium Orchestra',
-        zone: 'premium',
-        rows: [
-          { label: 'C', count: 12 },
-          { label: 'D', count: 12 },
-          { label: 'E', count: 14 },
-        ],
-        yStart: 170,
-        yGap: 24,
-        aisleWidth: 16,
-      },
-      {
-        id: 'STD',
-        label: 'Standard Stalls',
-        zone: 'standard',
-        rows: [
-          { label: 'F', count: 14 },
-          { label: 'G', count: 14 },
-          { label: 'H', count: 16 },
-          { label: 'I', count: 16 },
-        ],
-        yStart: 270,
-        yGap: 24,
-        aisleWidth: 16,
-      },
-      {
-        id: 'BALC',
-        label: 'Balcony (Economy)',
-        zone: 'economy',
-        rows: [
-          { label: 'J', count: 16 },
-          { label: 'K', count: 16 },
-          { label: 'L', count: 18 },
-        ],
-        yStart: 395,
-        yGap: 24,
-        aisleWidth: 18,
-      },
-      {
-        id: 'ACC',
-        label: 'Accessible Row',
-        zone: 'accessible',
-        rows: [
-          { label: 'W', count: 2 },
-        ],
-        yStart: 485,
-        yGap: 24,
-        aisleWidth: 0,
-      },
-    ],
+    stageWidth: 280, stageHeight: 40,
+    stageX: 310, stageY: 530,
+    sections: theatreSectionsConfig,
+    seats: generateTheatreSeats(450, 565, theatreSectionsConfig),
   },
 
-  // INDOOR ARENA LAYOUT
   indoor: {
     venueName: 'MehfilX Arena',
-    width: 700,
-    height: 560,
+    width: 900, height: 560,
+    cx: 450, cy: 0,
     hasStage: true,
     stageLabel: 'CENTER ARENA STAGE',
-    stageWidth: 180,
-    stageHeight: 40,
-    sections: [
-      {
-        id: 'VIP',
-        label: 'Arena VIP Floor',
-        zone: 'vip',
-        rows: [
-          { label: 'A', count: 12 },
-          { label: 'B', count: 12 },
-          { label: 'C', count: 12 },
-        ],
-        yStart: 120,
-        yGap: 22,
-        aisleWidth: 16,
-      },
-      {
-        id: 'PREM',
-        label: 'Premium Seats',
-        zone: 'premium',
-        rows: [
-          { label: 'D', count: 14 },
-          { label: 'E', count: 14 },
-          { label: 'F', count: 16 },
-        ],
-        yStart: 210,
-        yGap: 22,
-        aisleWidth: 16,
-      },
-      {
-        id: 'STD',
-        label: 'Standard Tiers',
-        zone: 'standard',
-        rows: [
-          { label: 'G', count: 16 },
-          { label: 'H', count: 16 },
-          { label: 'I', count: 18 },
-          { label: 'J', count: 18 },
-        ],
-        yStart: 300,
-        yGap: 22,
-        aisleWidth: 18,
-      },
-      {
-        id: 'ECO',
-        label: 'Economy Tier (Rear)',
-        zone: 'economy',
-        rows: [
-          { label: 'K', count: 18 },
-          { label: 'L', count: 20 },
-          { label: 'M', count: 20 },
-        ],
-        yStart: 410,
-        yGap: 22,
-        aisleWidth: 20,
-      },
-      {
-        id: 'ACC',
-        label: 'Accessible Row',
-        zone: 'accessible',
-        rows: [
-          { label: 'A_ACC', count: 2 },
-        ],
-        yStart: 500,
-        yGap: 22,
-        aisleWidth: 0,
-      },
-    ],
+    stageWidth: 280, stageHeight: 40,
+    stageX: 310, stageY: 25,
+    sections: concertSectionsConfig,
+    seats: generateConcertSeats(450, 0, concertSectionsConfig),
   },
 };
 
+// ─── LAYOUT TYPE RESOLVER ─────────────────────────────────────────────────
 export function getLayoutType(event) {
   if (!event) return 'indoor';
-  const category = (event.category || '').toLowerCase();
-  const title = (event.title || '').toLowerCase();
-  const venue = (event.venue || '').toLowerCase();
+  const cat   = (event.category || '').toLowerCase();
+  const title = (event.title   || '').toLowerCase();
+  const venue = (event.venue   || '').toLowerCase();
 
-  if (category === 'sports' || venue.includes('stadium') || title.includes('vs') || title.includes('ipl') || title.includes('match') || title.includes('test')) {
-    if (venue.includes('stadium') && !title.includes('arijit') && !category.includes('concert')) {
-      return 'cricket';
-    }
-    return 'cricket'; // default sports is cricket stadium
-  }
-
-  if (category === 'concert' || category === 'festival' || title.includes('festival') || title.includes('concert') || title.includes('live') || title.includes('tour')) {
+  if (cat.includes('concert') || cat.includes('festival') || cat.includes('music') ||
+      title.includes('festival') || title.includes('concert') || title.includes('live') ||
+      title.includes('tour')     || title.includes('singh')   || title.includes('kuhad'))
     return 'concert';
-  }
 
-  if (category === 'comedy' || category === 'theatre' || title.includes('comedy') || title.includes('musical') || title.includes('theatre') || title.includes('factory')) {
+  if (cat.includes('sports')  || cat.includes('cricket') || venue.includes('stadium') ||
+      title.includes('vs')    || title.includes('ipl')   || title.includes('match')   ||
+      title.includes('test'))
+    return 'cricket';
+
+  if (cat.includes('comedy')  || cat.includes('theatre') || title.includes('comedy')  ||
+      title.includes('musical')|| title.includes('theatre')|| title.includes('factory')||
+      title.includes('gill')  || title.includes('khan'))
     return 'theatre';
-  }
 
   return 'indoor';
 }

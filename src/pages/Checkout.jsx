@@ -243,6 +243,42 @@ export default function Checkout() {
 
   const [paymentMethod, setPaymentMethod] = useState('upi');
   const [portalOpen, setPortalOpen] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(null);
+
+  useEffect(() => {
+    const start = sessionStorage.getItem('seatHoldStart');
+    if (!start) return;
+
+    const elapsed = Math.floor((Date.now() - parseInt(start, 10)) / 1000);
+    const initialTime = Math.max(0, 180 - elapsed);
+    setTimeLeft(initialTime);
+
+    const interval = setInterval(() => {
+      const currentStart = sessionStorage.getItem('seatHoldStart');
+      if (currentStart) {
+        const curElapsed = Math.floor((Date.now() - parseInt(currentStart, 10)) / 1000);
+        const remaining = Math.max(0, 180 - curElapsed);
+        setTimeLeft(remaining);
+        if (remaining <= 0) {
+          clearInterval(interval);
+          sessionStorage.removeItem('seatHoldStart');
+          sessionStorage.setItem('holdExpired', 'true');
+          navigate(`/events/${slug}/seats`);
+        }
+      } else {
+        clearInterval(interval);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [slug, navigate]);
+
+  const formatTime = (seconds) => {
+    if (seconds === null) return '';
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
 
   if (!event || selectedSeats.length === 0) {
     return (
@@ -265,6 +301,7 @@ export default function Checkout() {
 
   const handlePaySuccess = () => {
     setPortalOpen(false);
+    sessionStorage.removeItem('seatHoldStart'); // Clear hold timer on success
     navigate(`/events/${slug}/success`, {
       state: {
         selectedSeats,
@@ -300,7 +337,14 @@ export default function Checkout() {
         </div>
 
         <h1 className="mt-6 text-4xl font-extrabold tracking-tight text-on-surface">Review &amp; Pay</h1>
-        <p className="mt-1 text-sm text-outline">Complete your checkout inside 10 minutes to secure your tickets.</p>
+        {timeLeft !== null ? (
+          <p className="mt-1 text-sm text-amber-600 font-bold flex items-center gap-1.5">
+            <Icon name="timer" style={{ fontSize: 16 }} />
+            Complete checkout within {formatTime(timeLeft)} to secure your tickets.
+          </p>
+        ) : (
+          <p className="mt-1 text-sm text-outline">Complete your checkout to secure your tickets.</p>
+        )}
 
         <div className="mt-10 grid grid-cols-1 gap-8 lg:grid-cols-12">
           {/* Left: Event details + Payment method selector */}

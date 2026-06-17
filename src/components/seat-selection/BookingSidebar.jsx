@@ -1,7 +1,7 @@
 import Icon from '../common/Icon.jsx';
 import { ZONE_CLASSES, ZONE_NAMES } from '../../data/seatLayouts.js';
 
-export default function BookingSidebar({ selectedSeats, onRemoveSeat, onClearAll, onProceed }) {
+export default function BookingSidebar({ selectedSeats, onRemoveSeat, onClearAll, onProceed, timeLeft }) {
   const n = selectedSeats.length;
 
   // Real-time calculations
@@ -18,6 +18,17 @@ export default function BookingSidebar({ selectedSeats, onRemoveSeat, onClearAll
         <p className="mt-1 text-xs text-outline">
           {n ? `${n} seat${n > 1 ? 's' : ''} selected` : 'No seats selected'}
         </p>
+        {n > 0 && timeLeft && (
+          <div className="mt-3.5 flex items-center gap-2.5 rounded-2xl bg-amber-50 border border-amber-200/50 px-4 py-3 text-xs text-amber-800 font-bold shadow-sm">
+            <span className="grid h-6 w-6 place-items-center rounded-lg bg-amber-500/10 text-amber-600 select-none">
+              <Icon name="timer" style={{ fontSize: 16 }} />
+            </span>
+            <div className="flex-1 min-w-0">
+              <span className="text-[10px] text-amber-700/85 uppercase tracking-widest block font-extrabold leading-none">Seats Held (Locked)</span>
+              <span className="text-xs font-black mt-1 block">Time remaining: {timeLeft}</span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Selected Seats Scroll List */}
@@ -52,6 +63,10 @@ export default function BookingSidebar({ selectedSeats, onRemoveSeat, onClearAll
                       <div className="mt-0.5 flex items-center gap-1.5">
                         <span className={`inline-flex rounded-full border px-1.5 py-0.2 text-[8px] font-extrabold uppercase tracking-wider ${bgStyle}`}>
                           {ZONE_NAMES[s.zone] || s.zone}
+                        </span>
+                        <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-50 border border-amber-200/50 px-1.5 py-0.2 text-[8px] font-extrabold text-amber-700 uppercase tracking-wider select-none">
+                          <Icon name="lock" style={{ fontSize: 9 }} />
+                          Held
                         </span>
                       </div>
                     </div>
